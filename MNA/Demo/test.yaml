@@ -1,0 +1,6 @@
+train: ./data/images/train/
+val: ./data/images/val/
+test: ./data/images/val/
+
+nc: 2
+names: ["Person", "Forklift"]
