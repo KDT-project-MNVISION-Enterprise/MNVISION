@@ -36,7 +36,7 @@ KDT 5기 혜모팀의 기업 프로젝트입니다.
 
 임소영(PM) : [Github](https://github.com/YimSoYoung1001)  
 명노아 : [Github](https://github.com/noah2397)  
-변주영 : [Github](https://github.com/5amriley)  
+변주영 : [Github](https://github.com/rileybyun)  
 손예림 : [Github](https://github.com/osllzd)  
 이화은 : [Github](https://github.com/Skylee0310)
 
