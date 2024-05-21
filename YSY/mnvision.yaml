@@ -1,0 +1,8 @@
+names:
+- Person
+- Forklift
+- Trolly
+nc: 3
+test: C:/Users/DELL-PC/Desktop/YimSoYoung/labeled/test_lhe
+train: C:/Users/DELL-PC/Desktop/YimSoYoung/labeled/train_ysy
+val: C:/Users/DELL-PC/Desktop/YimSoYoung/labeled/valid_syr
