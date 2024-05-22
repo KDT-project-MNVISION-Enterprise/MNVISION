@@ -8,7 +8,7 @@ import numpy as np
 from ultralytics import YOLO
 import os
 
-form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/Video2.ui")[0] # Qt designer에서 작성한 ui 파일 불러오기
+form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/Video3.ui")[0] # Qt designer에서 작성한 ui 파일 불러오기
 ort_session = YOLO('MNVISION/LHE/gui_PyQt/best.onnx') # 모델 파일 불러오기
 
 class WindowClass(QMainWindow, form_class): # 
@@ -24,7 +24,7 @@ class WindowClass(QMainWindow, form_class): #
         self.btn_pause.clicked.connect(self.start_video) # 버튼 이름.clicked.connect : 버튼 활성화
         
         # 동영상 업로드 버튼
-        self.pushButton_7.clicked.connect(self.btn_fun_FileLoad)
+        self.Video_upload.clicked.connect(self.btn_fun_FileLoad)
         
         # 멈춤 버튼 연결
         self.btn_stop_start.clicked.connect(self.btn_change_pause)
@@ -38,6 +38,9 @@ class WindowClass(QMainWindow, form_class): #
         # 재생/정지 플래그 변수
         self.is_playing=True
 
+        self.Video_info_text=""
+    
+    # 동영상 불러오기
     def btn_fun_FileLoad(self):        
         fname=QFileDialog.getOpenFileName(self, 'Open file', './')        
         self.filepath=fname[0]
@@ -45,7 +48,8 @@ class WindowClass(QMainWindow, form_class): #
         self.cap = cv2.VideoCapture(rf"{self.filepath}") # 동영상 불러오기 
         fps = self.cap.get(cv2.CAP_PROP_FPS) # 시간 단위를 가지고 오는 
         self.sleep_ms = int(np.round((1 / fps) * 1000)) # 프레임 당 지연시간 측정 - 컴퓨터 환경에 구애받지 않고 같은 시간에 창이 뜨게 하기 위하여.
-
+    
+    # 비디오 시작
     def start_video(self):
         while True:
             if self.is_playing:
@@ -73,6 +77,17 @@ class WindowClass(QMainWindow, form_class): #
 
     def btn_change_pause(self):
         self.is_playing = not self.is_playing
+
+    def video_info(self) :
+        self.cap = cv2.VideoCapture(rf"{self.filepath}")
+        self.length=int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.width=int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.height=int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.fps=int(self.cap.get(cv2.CAP_PROP_FPS))
+        self.Video_info_text.setText(f"{self.length} 프레임, {self.width} x {self.height} 크기, {self.length/self.fps} fps")
+
+
+
 
     # 종료 확인
     def closeEvent(self, QCloseEvent):
