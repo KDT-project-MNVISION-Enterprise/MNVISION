@@ -1,6 +1,7 @@
-train: ./images/train/
-val: ./images/val/
-test: ./images/val/
+path: ./
+train: images/train
+val: images/val
+test: images/val
 
-nc: 4
-names: ["Person", "Forklift", "Trolly", "Logo"]
+nc: 5
+names: ["Person", "Forklift", "Trolly", "Logo", "Door"]
