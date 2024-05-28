@@ -18,6 +18,7 @@ ort_session = YOLO('MNVISION/LHE/gui_PyQt/best.onnx') # 모델 파일 불러오�
 class WindowClass2(QMainWindow, form_class): # c
     def __init__(self):
         super().__init__()
+        
         self.setupUi(self)
 
         self.scene2 = QGraphicsScene()
