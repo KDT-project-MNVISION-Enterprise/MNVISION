@@ -1,48 +1,94 @@
+import sys
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5 import uic
 import cv2
+import numpy as np
+from ultralytics import YOLO
+import os
+import datetime
 
-# 동영상 파일 경로
-video_path = "Streaming/person.avi"
+form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/Video3.ui")[0] # Load the UI file
+ort_session = YOLO('MNVISION/LHE/gui_PyQt/best.onnx') # Load the model
 
-# 동영상을 읽어올 캡처 객체 생성
-cap = cv2.VideoCapture(video_path)
+class WindowClass(QMainWindow, form_class): 
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
 
-# 동영상이 정상적으로 열렸는지 확인
-if not cap.isOpened():
-    print("Error: Could not open video.")
-    exit()
+        # Register scene for graphicsView
+        self.scene = QGraphicsScene() 
+        self.graphicsView.setScene(self.scene) 
 
-# 동영상 프레임 너비와 높이
-frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # Connect buttons to functions
+        self.btn_pause.clicked.connect(self.start_video) 
+        self.Video_upload.clicked.connect(self.btn_fun_FileLoad)
+        self.btn_stop_start.clicked.connect(self.btn_change_pause)
+        
+        # Initialize variables
+        self.filepath=""
+        self.cap=None
+        self.sleep_ms=0
+        self.is_playing=True
+    
+    # Load video file
+    def btn_fun_FileLoad(self):        
+        self.filepath, _ = QFileDialog.getOpenFileName(self, 'Open file', './', "Video files (*.mp4 *.avi)")        
+        if self.filepath:
+            print(self.filepath)
+            self.cap = cv2.VideoCapture(self.filepath) 
+            self.fps = self.cap.get(cv2.CAP_PROP_FPS) 
+            self.sleep_ms = int(np.round((1 / self.fps) * 1000)) 
 
-# 윈도우 생성 및 윈도우 이름 설정
-cv2.namedWindow("Video Player")
+            # Display video information when file is loaded
+            self.display_video_info()
+    
+    # Start video playback
+    def start_video(self):
+        while True:
+            if self.is_playing:
+                ret, frame = self.cap.read() 
+                results = ort_session(frame) 
+                frame = results[0].plot()
 
-# 동영상 재생 제어 변수
-is_playing = True
+                qt_image = QImage(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).data, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888) 
+                pixmap = QPixmap(qt_image) 
+                scaled_pixmap = pixmap.scaled(self.graphicsView.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.scene.clear() 
+                self.scene.addPixmap(scaled_pixmap) 
+                self.graphicsView.fitInView(self.scene.itemsBoundingRect(), Qt.KeepAspectRatio) 
+            key = cv2.waitKey(30)
 
-while True:
-    # 동영상 재생 중일 때 프레임을 읽어옴
-    if is_playing:
-        ret, frame = cap.read()
+        self.cap.release() 
 
-        # 동영상의 마지막 프레임에 도달하면 종료
-        if not ret:
-            break
+    # Pause/play video
+    def btn_change_pause(self):
+        self.is_playing = not self.is_playing
 
-        # 프레임을 윈도우에 표시
-        cv2.imshow("Video Player", frame)
+    # Display video information
+    def display_video_info(self):
+        if self.cap is not None:
+            self.filename = os.path.basename(self.filepath)
+            self.length=int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            self.width=int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.height=int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.fps=int(self.cap.get(cv2.CAP_PROP_FPS))
+            self.video_length = datetime.timedelta(seconds=int(self.length/self.fps))
+            info_text = f"파일명: {self.filename}\n프레임: {self.length}\n크기: {self.width} x {self.height}\n영상 길이: {self.video_length}\nfps: {self.fps}"
+            self.Video_info_text.setText(info_text)
 
-    # 키 입력 대기 (30ms)
-    key = cv2.waitKey(30)
+    # Close confirmation dialog
+    def closeEvent(self, QCloseEvent):
+        re = QMessageBox.question(self, "종료 확인", "종료 하시겠습니까?",
+                    QMessageBox.Yes|QMessageBox.No) 
+        if re == QMessageBox.Yes: 
+            QCloseEvent.accept() 
+        else: 
+            QCloseEvent.ignore() 
 
-    # 'q' 키를 누르면 종료
-    if key == ord('q'):
-        break
-    # 'p' 키를 누르면 재생/일시정지 토글
-    elif key == ord('p'):
-        is_playing = not is_playing
-
-# 캡처 객체 및 윈도우 제거
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    myWindow = WindowClass() 
+    myWindow.show()
+    sys.exit(app.exec_())
