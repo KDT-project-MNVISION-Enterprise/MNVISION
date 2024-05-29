@@ -15,11 +15,20 @@ import time
 import threading
 import csv
 
+<<<<<<< HEAD
 test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test2.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 ort_session = YOLO('Program/Model/best.onnx')
 ort_session2 = YOLO('Program/Model/best.onnx')
+=======
+test_filepath ="F:/Detect_test_Cam6.MP4"
+mp3_file = "C:/Users/kdp/PycharmProjects/My_Project/MNVISION/Program/Audio/alarm_bell.mp3"
+form_class = uic.loadUiType("MNVISION/Program/UI/Video.ui")[0]
+
+ort_session = YOLO('TEST/YOLO_comparison/240528/240529_train12/weights/best.pt')
+ort_session2 = YOLO('TEST/YOLO_comparison/240528/240529_train12/weights/best.pt')
+>>>>>>> eb4de110f523ad87f6d19ee2662d2923ce42b617
 
 class VideoProcessor:
     def __init__(self, filepath=None):
@@ -209,6 +218,7 @@ class ObjectDetection:
 
                             value = (d_1 + d_2)/2   
                             value2 = (d_3 + d_4) /2
+
                         print(value, value2)
                         # value, value2를 test.csv에 기록
                         with open('test.csv', 'a', newline='') as csvfile:
@@ -220,6 +230,7 @@ class ObjectDetection:
                                 cv2.putText(frame, input_text, (10, 50), self.font, 1, self.b_c, 1)
                             else : 
                                 input_text ='Folklift on UNDER RACK'
+
                     else:
                         self.count = 1
 
