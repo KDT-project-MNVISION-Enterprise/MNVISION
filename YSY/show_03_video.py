@@ -120,41 +120,65 @@ while True:
 
                 # 뮤팅 알림 표시 
                 if label == 'Person' :
-                    count += 1
-                    print(f"count : {count}")
+                    # count += 1
+                    # print(f"count : {count}")
 
-                    if count > 5 : 
-                        # cv2.rectangle(frame, (x1, y1), (x2, y2), g_c, 2)
-                        # cv2.putText(frame, label, (x1, y1-10), font, 1, (36,255,12), 2)
+                    # if count > 5 : 
+                    # cv2.rectangle(frame, (x1, y1), (x2, y2), g_c, 2)
+                    # cv2.putText(frame, label, (x1, y1-10), font, 1, (36,255,12), 2)
 
-                        # upper rack
-                        if (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
-                            cv2.putText(frame, 'Person on UPPER RACK', (x1, y2+30), font, 1, b_c, 1)
-                            print('person on upper rack')
+                    # upper rack
+                    if (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
+                        cv2.putText(frame, 'Person on UPPER RACK', (x1, y2+30), font, 1, b_c, 1)
+                        print('person on upper rack')
 
-                        # lower rack  
-                        if (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
-                            cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), font, 1, b_c, 1)
-                            print('person on lower rack')
-                        
+                    # lower rack  
+                    if (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
+                        cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), font, 1, b_c, 1)
+                        print('person on lower rack')
+
+                    # count = 1          # person용 프레임 카운트 초기화 
+
                         
                         
                 # 작업중 알림 표시
                 elif (label == 'Forklift(H)') or (label == 'Forklift(D)'): 
-                    count = 1          # person용 프레임 카운트 초기화 
-                    rack_count += 1
+                    if (x1 + x2)/2 > (u_x1 + u_x2)/2 :
+                        # left
+                        d_1 = (u_x2 - x1)**2 + (u_y1 - y1)**2 
+                        d_1 = np.sqrt(d_1)
 
-                    fork = 250
-                    if rack_count >= 3:
-                        # upper rack
-                        if (u_x1 <= x1 + fork <= u_x2) or (u_x1 <= x2 + fork <= u_x2):
-                            cv2.putText(frame, 'Forklift working on UPPER RACK', (10, 50), font, 1, w_c, 2)
-                            print('Forklift working on UPPER RACK')
+                        d_2 = (u_x2 - x2)**2 + (u_y2 - y2)**2
+                        d_2 = np.sqrt(d_2)
 
-                        # lower rack  
-                        if (l_x1 <= x1 + fork <= l_x2) or (l_x1 <= x2 + fork <= l_x2):
-                            cv2.putText(frame, 'Forklift working on LOWER RACK', (10, 80), font, 1, w_c, 2)
-                            print('Forklift working on LOWER RACK')
+                        d_3 = (l_x2 - x1)**2 + (l_y1 - y1)**2 
+                        d_3 = np.sqrt(d_3)
+
+                        d_4 = (l_x2 - x2)**2 + (l_y2 - y2)**2
+                        d_4 = np.sqrt(d_4)
+
+                        value = (d_1 + d_2)/2
+                        value2 = (d_3 + d_4) /2
+                    
+                    elif (x1 + x2)/2 < (u_x1 + u_x2)/2 :
+                        # right
+                        d_1 = (u_x1 - x2)**2  + (u_y1 - y1)**2   
+                        d_1 = np.sqrt(d_1)
+
+                        d_2 = (u_x1 - x2)**2 + (u_y2 - y2)**2
+                        d_2 = np.sqrt(d_2)
+
+                        d_3 = (l_x1 - x2)**2 + (l_y1 - y1)**2 
+                        d_3 = np.sqrt(d_3)
+
+                        d_4 = (l_x1 - x2)**2 + (l_y2 - y2)**2
+                        d_4 = np.sqrt(d_4)
+
+                        value = (d_1 + d_2)/2   
+                        value2 = (d_3 + d_4) /2
+
+                    if (value > 100) or (value2 >100):
+                        cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), font, 1, b_c, 1)
 
 
                 else :

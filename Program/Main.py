@@ -14,11 +14,12 @@ import pygame
 import time
 import threading
 
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test.mp4"
-mp3_file = "Program/Audio/alarm_bell.mp3"
-form_class = uic.loadUiType("Program/UI/Video.ui")[0]
-ort_session = YOLO('Program/Model/best.onnx')
-ort_session2 = YOLO('Program/Model/best.onnx')
+test_filepath ="F:/Detect_test_Cam6.MP4"
+mp3_file = "C:/Users/kdp/PycharmProjects/My_Project/MNVISION/Program/Audio/alarm_bell.mp3"
+form_class = uic.loadUiType("MNVISION/Program/UI/Video.ui")[0]
+
+ort_session = YOLO('TEST/YOLO_comparison/240528/240529_train12/weights/best.pt')
+ort_session2 = YOLO('TEST/YOLO_comparison/240528/240529_train12/weights/best.pt')
 
 class VideoProcessor:
     def __init__(self, filepath=None):
@@ -172,23 +173,45 @@ class ObjectDetection:
                                 cv2.putText(frame, 'Person on LOWER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
                                 print('Person on lower rack')
 
-                    elif label in ['Forklift(H)', 'Forklift(D)']:
-                        self.count = 1
-                        self.rack_count += 1
-                        fork = 250
+                                    # 작업중 알림 표시
 
-                        if self.rack_count >= 3:
-                            music_thread = threading.Thread(target=self.play_music, args=("Program/Audio/alarm_bell.mp3",))
-                            music_thread.start()
-                            print("Music is playing in a separate thread.")
-                            if (u_x1 <= x1 + fork <= u_x2) or (u_x1 <= x2 + fork <= u_x2):
-                                cv2.putText(frame, 'Forklift working on UPPER RACK', (10, 50), self.font, 1, self.w_c, 2)
-                                print('Forklift working on UPPER RACK')
+                    elif (label == 'Forklift(H)') or (label == 'Forklift(D)'): 
+                        if (x1 + x2)/2 > (u_x1 + u_x2)/2 :
+                            # left
+                            d_1 = (u_x2 - x1)**2 + (u_y1 - y1)**2 
+                            d_1 = np.sqrt(d_1)
 
-                            if (l_x1 <= x1 + fork <= l_x2) or (l_x1 <= x2 + fork <= l_x2):
-                                cv2.putText(frame, 'Forklift working on LOWER RACK', (10, 80), self.font, 1, self.w_c, 2)
-                                print('Forklift working on LOWER RACK')
+                            d_2 = (u_x2 - x2)**2 + (u_y2 - y2)**2
+                            d_2 = np.sqrt(d_2)
 
+                            d_3 = (l_x2 - x1)**2 + (l_y1 - y1)**2 
+                            d_3 = np.sqrt(d_3)
+
+                            d_4 = (l_x2 - x2)**2 + (l_y2 - y2)**2
+                            d_4 = np.sqrt(d_4)
+
+                            value = (d_1 + d_2)/2
+                            value2 = (d_3 + d_4) /2
+                        
+                        elif (x1 + x2)/2 < (u_x1 + u_x2)/2 :
+                            # right
+                            d_1 = (u_x1 - x2)**2  + (u_y1 - y1)**2   
+                            d_1 = np.sqrt(d_1)
+
+                            d_2 = (u_x1 - x2)**2 + (u_y2 - y2)**2
+                            d_2 = np.sqrt(d_2)
+
+                            d_3 = (l_x1 - x2)**2 + (l_y1 - y1)**2 
+                            d_3 = np.sqrt(d_3)
+
+                            d_4 = (l_x1 - x2)**2 + (l_y2 - y2)**2
+                            d_4 = np.sqrt(d_4)
+
+                            value = (d_1 + d_2)/2   
+                            value2 = (d_3 + d_4) /2
+
+                        if (value > 1000) or (value2 >1000):
+                            cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), self.font, 1, self.b_c, 1)
                     else:
                         self.count = 1
 
