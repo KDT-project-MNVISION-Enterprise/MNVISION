@@ -6,20 +6,23 @@ from PyQt5 import uic
 import cv2
 from ultralytics import YOLO
 import numpy as np
-import datetime
 import time
 import os
 import re
 import pygame
 import time
 import threading
+import csv
+from datetime import datetime
+import subprocess
 
-test_filepath ="F:/Detect_test_Cam6.MP4"
-mp3_file = "C:/Users/kdp/PycharmProjects/My_Project/MNVISION/Program/Audio/alarm_bell.mp3"
-form_class = uic.loadUiType("MNVISION/Program/UI/Video.ui")[0]
 
-ort_session = YOLO('TEST/YOLO_comparison/240528/240529_train12/weights/best.pt')
-ort_session2 = YOLO('TEST/YOLO_comparison/240528/240529_train12/weights/best.pt')
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test.mp4"
+mp3_file = "Program/Audio/alarm_bell.mp3"
+form_class = uic.loadUiType("Program/UI/Video.ui")[0]
+ort_session = YOLO('Program/Model/best.onnx')
+ort_session2 = YOLO('Program/Model/best.onnx')
+
 
 class VideoProcessor:
     def __init__(self, filepath=None):
@@ -63,38 +66,6 @@ class VideoProcessor:
         if self.cap is not None:
             self.cap.release()
 
-
-class ObjectDetection:
-    def __init__(self, model):
-        self.model = model
-        self.font = cv2.FONT_HERSHEY_COMPLEX_SMALL
-        self.b_c = (0, 0, 255)      # blue
-        self.g_c = (0, 255, 0)      # green
-        self.y_c = (255, 255, 0)    # yellow
-        self.w_c = (255, 255, 255)  # white
-        self.thick = 2
-        self.count = 1
-        self.rack_count = 1
-    
-    
-    def play_music(file_path):
-        pygame.mixer.init()
-        pygame.mixer.music.load(file_path)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            time.sleep(1)
-    
-    def transfer_two_points(self, data):
-        X_values = data[:, 0]
-        Y_values = data[:, 1]
-
-        # 가장 작은 X와 가장 큰 X, 가장 작은 Y와 가장 큰 Y를 찾기
-        min_X = np.min(X_values)
-        max_X = np.max(X_values)
-        min_Y = np.min(Y_values)
-        max_Y = np.max(Y_values)
-
-        return min_X, min_Y, max_X, max_Y
     
 class ObjectDetection:
     def __init__(self, model):
@@ -107,6 +78,7 @@ class ObjectDetection:
         self.thick = 2
         self.count = 1
         self.rack_count = 1
+        self.result = False
         pygame.mixer.init()
         pygame.mixer.music.load(mp3_file)
 
@@ -131,16 +103,17 @@ class ObjectDetection:
     def apply_model(self, frame, upper_coordinates=None, lower_coordinates=None):
         if upper_coordinates is None and lower_coordinates is None:
             results = self.model(frame)
-        elif upper_coordinates and lower_coordinates:
-            u_x1, u_y1, u_x2, u_y2 = self.transfer_two_points(np.array(upper_coordinates, dtype=np.int32))
-            l_x1, l_y1, l_x2, l_y2 = self.transfer_two_points(np.array(lower_coordinates, dtype=np.int32))
+        else:
+            if upper_coordinates:
+                u_x1, u_y1, u_x2, u_y2 = self.transfer_two_points(np.array(upper_coordinates, dtype=np.int32))
+                frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.g_c, self.thick)
+                frame = cv2.putText(frame, 'upper_rack', (u_x1, u_y1 - 10), self.font, 1, self.g_c, self.thick)
+            if lower_coordinates:
+                l_x1, l_y1, l_x2, l_y2 = self.transfer_two_points(np.array(lower_coordinates, dtype=np.int32))
+                frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.g_c, self.thick)
+                frame = cv2.putText(frame, 'lower_rack', (l_x1, l_y1 - 10), self.font, 1, self.g_c, self.thick)
             
-            frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.g_c, self.thick)
-            frame = cv2.putText(frame, 'upper_rack', (u_x1, u_y1 - 10), self.font, 1, self.g_c, self.thick)
-            frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.g_c, self.thick)
-            frame = cv2.putText(frame, 'lower_rack', (l_x1, l_y1 - 10), self.font, 1, self.g_c, self.thick)
-            
-            results = self.model.predict(frame, conf=0.7)
+            results = self.model.predict(frame, conf=0.4)
             
             for result in results:
                 boxes = result.boxes.xyxy.cpu().numpy()
@@ -148,79 +121,106 @@ class ObjectDetection:
                 speeds = result.speed
                 probs = result.probs
                 obb = result.obb
+                value = np.inf
+                value2 = np.inf
+                forklift_box=None
 
                 for box, class_id in zip(boxes, class_ids):
                     x1, y1, x2, y2 = map(int, box)
 
                     label = self.model.names[class_id]
                     print(f"좌표: ({x1}, {y1}) - ({x2}, {y2})  라벨: {label}")
-                    print(f"속도: {speeds}")
-                    print(f"확률: {probs}    obb: {obb}")
+                    # print(f"속도: {speeds}")
+                    # print(f"확률: {probs}    obb: {obb}")
 
                     cv2.rectangle(frame, (x1, y1), (x2, y2), self.y_c, self.thick)
                     cv2.putText(frame, label, (x1, y1 - 10), self.font, 1, self.y_c, self.thick)
 
+                    f_x1, f_x2, f_y1, f_y2 = -1, -1, -1, -1
+                    # Forklift에 사람이 있는 경우 알림 표시
+                    if (2 in class_ids) or (3 in class_ids) or (4 in class_ids) :
+                        # Forklift가 감지될 때마다 박스를 기록
+                        if label in ['Forklift(H)', 'Forklift(V)', 'Forklift(D)']:
+                            forklift_box = (x1, x2, y1, y2) 
+
+                        if label == 'Person' : 
+                            x2 = (x1 + x2) / 2
+                            y2 = (y1 + y2) / 2
+                            x2 , y2 = int(x2), int(y2)
+                            
+                            if forklift_box : 
+                                f_x1, f_x2, f_y1, f_y2 = forklift_box  # 수정된 부분
+                                if (f_x1-50 <= x2 <= f_x2+50) and (f_y1-50 <= y2 <= f_y2+50):
+                                    cv2.putText(frame, 'Person on FORKLIFT', (10, 700), self.font, 1, self.b_c, 1)
+                                    print('Person on FORKLIFT')
+
+                            
+                    # Rack에 사람이 있는 경우 알림 표시
                     if label == 'Person':
-                        self.count += 1
-                        print(f"count: {self.count}")
+                        x2 = (x1 + x2) / 2
+                        y2 = (y1 + y2) / 2
+                        x2 , y2 = int(x2), int(y2)
+                        if upper_coordinates and (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
+                            cv2.putText(frame, 'Person on UPPER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
+                            print('Person on upper rack')
+                        if lower_coordinates and (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
+                            cv2.putText(frame, 'Person on LOWER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
+                            print('Person on lower rack')
 
-                        if self.count > 5:
-                            if (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
-                                cv2.putText(frame, 'Person on UPPER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
-                                print('Person on upper rack')
 
-                            if (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
-                                cv2.putText(frame, 'Person on LOWER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
-                                print('Person on lower rack')
-
-                                    # 작업중 알림 표시
-
-                    elif (label == 'Forklift(H)') or (label == 'Forklift(D)'): 
-                        if (x1 + x2)/2 > (u_x1 + u_x2)/2 :
+                    elif (label == 'Forklift(H)') or (label == 'Forklift(D)'):
+                        if upper_coordinates and (x1 + x2) / 2 > (u_x1 + u_x2) / 2:
                             # left
-                            d_1 = (u_x2 - x1)**2 + (u_y1 - y1)**2 
+                            d_1 = (u_x2 - x1) ** 2 + (u_y1 - y1) ** 2
                             d_1 = np.sqrt(d_1)
 
-                            d_2 = (u_x2 - x2)**2 + (u_y2 - y2)**2
+                            d_2 = (u_x2 - x2) ** 2 + (u_y2 - y2) ** 2
                             d_2 = np.sqrt(d_2)
 
-                            d_3 = (l_x2 - x1)**2 + (l_y1 - y1)**2 
-                            d_3 = np.sqrt(d_3)
+                            value = (d_1 + d_2) / 2
 
-                            d_4 = (l_x2 - x2)**2 + (l_y2 - y2)**2
-                            d_4 = np.sqrt(d_4)
-
-                            value = (d_1 + d_2)/2
-                            value2 = (d_3 + d_4) /2
-                        
-                        elif (x1 + x2)/2 < (u_x1 + u_x2)/2 :
+                        elif upper_coordinates and (x1 + x2) / 2 < (u_x1 + u_x2) / 2:
                             # right
-                            d_1 = (u_x1 - x2)**2  + (u_y1 - y1)**2   
+                            d_1 = (u_x1 - x2) ** 2 + (u_y1 - y1) ** 2
                             d_1 = np.sqrt(d_1)
 
-                            d_2 = (u_x1 - x2)**2 + (u_y2 - y2)**2
+                            d_2 = (u_x1 - x2) ** 2 + (u_y2 - y2) ** 2
                             d_2 = np.sqrt(d_2)
 
-                            d_3 = (l_x1 - x2)**2 + (l_y1 - y1)**2 
+                            value = (d_1 + d_2) / 2
+
+                        if lower_coordinates and (x1 + x2) / 2 > (l_x1 + l_x2) / 2:
+                            # left
+                            d_3 = (l_x2 - x1) ** 2 + (l_y1 - y1) ** 2
                             d_3 = np.sqrt(d_3)
 
-                            d_4 = (l_x1 - x2)**2 + (l_y2 - y2)**2
+                            d_4 = (l_x2 - x2) ** 2 + (l_y2 - y2) ** 2
                             d_4 = np.sqrt(d_4)
 
-                            value = (d_1 + d_2)/2   
-                            value2 = (d_3 + d_4) /2
+                            value2 = (d_3 + d_4) / 2
 
-                        if (value > 1000) or (value2 >1000):
-                            cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), self.font, 1, self.b_c, 1)
+                        elif lower_coordinates and (x1 + x2) / 2 < (l_x1 + l_x2) / 2:
+                            # right
+                            d_3 = (l_x1 - x2) ** 2 + (l_y1 - y1) ** 2
+                            d_3 = np.sqrt(d_3)
+
+                            d_4 = (l_x1 - x2) ** 2 + (l_y2 - y2) ** 2
+                            d_4 = np.sqrt(d_4)
+
+                            value2 = (d_3 + d_4) / 2
+
+                        if (value < 300) or (value2 < 300):
+                            if value < value2:
+                                input_text = 'Folklift on UPPER RACK'
+                            else:
+                                input_text = 'Folklift on LOWER RACK'
+                            cv2.putText(frame, input_text, (10, 50), self.font, 1, self.b_c, 1)
+                            self.result = True
+                            threading.Thread(target=self.play_music, args=(mp3_file,)).start()
                     else:
                         self.count = 1
-
             cv2.putText(frame, 'Object Detection With YOLOv8', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
-        else:
-            results = self.model(frame)
-
-        return results[0].plot()
-
+        return results[0].plot(), self.result
 
 
 class CameraProcessor:
@@ -252,7 +252,7 @@ class FrameSaver:
 
     def save_frame(self, frame):
         self.frames.append(frame.copy())
-        if len(self.frames) > self.range_num*30 :
+        if len(self.frames) > self.range_num*30*2 :
             del self.frames[0]
 
     def save_to_video(self, output_path, fps=15):
@@ -266,6 +266,7 @@ class FrameSaver:
             out.write(frame)
             if time.time() - start_time >= self.range_num*2 :
                     break
+            print(time.time()-start_time)
         out.release()
 
 class VideoWidget(QLabel):
@@ -371,6 +372,7 @@ class WindowClass(QMainWindow, form_class):
         self.model_flag = False
         self.rectangle1_flag = False
         self.rectangle2_flag = False
+        self.delay_term=True
         self.points1 = []
         self.points2 = []
 
@@ -402,8 +404,7 @@ class WindowClass(QMainWindow, form_class):
         for i in range(1, 10):
             self.Log_text.addItem(f"00:0{i}:00")
         self.Log_text.itemClicked.connect(self.item_clicked)
-        self.Log_text_2.addItem("위험 감지!")
-        self.Log_text_2.itemClicked.connect(self.dialog_open)
+        self.Log_text_2.itemClicked.connect(self.play_video)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
@@ -412,10 +413,32 @@ class WindowClass(QMainWindow, form_class):
         self.timer_video = QTimer(self)
         self.timer_video.timeout.connect(self.process_video)
         self.timer.start(15)
+    
+    def play_video(self, item):
+        video_filename = f"{item.text()}.mp4"
         
+        # 현재 실행 위치의 경로를 가져옴
+        current_directory = os.getcwd()
+        
+        # 비디오 파일의 전체 경로
+        video_filepath = os.path.join(current_directory, video_filename)
+        
+        # VLC 미디어 플레이어로 비디오 파일 재생 (경로는 VLC가 설치된 위치에 따라 다를 수 있음)
+        vlc_path = "C:\\Program Files\\VideoLAN\\VLC\\vlc.exe"  # VLC 실행 파일의 경로
+        
+        # 비디오 파일이 존재하는지 확인
+        if os.path.isfile(video_filepath):
+            # VLC로 비디오 파일 재생
+            subprocess.run([vlc_path, video_filepath])
+        else:
+            print(f"비디오 파일 '{video_filepath}'을(를) 찾을 수 없습니다.")
+
+    
+    
     def draw_rectangle(self,num):
         if num==1:
             text = self.rack_text_1.toPlainText()
+            print(text)
             pattern = r'\((\d+), (\d+)\)'
             matches = re.findall(pattern, text)
             self.points1 = [(int(x), int(y)) for x, y in matches]
@@ -437,15 +460,17 @@ class WindowClass(QMainWindow, form_class):
         self.dialog = SelectAreaDialog(test_filepath, self)
         self.dialog.finished.connect(self.on_dialog_finished)
         self.dialog.show()
+        
 
     def on_dialog_finished(self, result):
         if result == QDialog.Rejected:
-            print("Dialog was closed")
-        print(str(self.dialog.coordinates))
+            pass
         if self.coordinate_box == 1 and self.dialog.coordinates :
             self.rack_text_1.setText(str(self.dialog.coordinates))
+            self.draw_rectangle(1)
         elif self.coordinate_box == 2 and self.dialog.coordinates:
             self.rack_text_2.setText(str(self.dialog.coordinates))
+            self.draw_rectangle(2)
         else:
             print("Invalid coordinate box number") 
         self.dialog.deleteLater()  # 다이얼로그 객체 삭제
@@ -455,7 +480,6 @@ class WindowClass(QMainWindow, form_class):
     def load_video_file(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', './', 'Video files (*.mp4 *.avi)')
         if fname[0]:
-            print(fname[0])
             duration = self.video_processor.load_video(fname[0])
             self.Total_length.setText(self.transform_time(duration))  
             self.display_first_frame()
@@ -511,22 +535,35 @@ class WindowClass(QMainWindow, form_class):
         if frame is not None:
             if self.model_flag :
                 if self.points1 and self.points2:
-                    frame = self.model.apply_model(frame, self.points1, self.points2)
+                    frame, result = self.model.apply_model(frame, self.points1, self.points2)
                 elif self.points1 :
-                    frame = self.model.apply_model(frame, self.points1)
+                    frame, result = self.model.apply_model(frame, self.points1)
                 elif self.points2 :
-                    frame = self.model.apply_model(frame,lower_coordinates=self.points2)
+                    frame, result = self.model.apply_model(frame,lower_coordinates=self.points2)
                 else :
-                    frame = self.model.apply_model(frame)
+                    frame, result = self.model.apply_model(frame)
+                if result :
+                    threading.Timer(3, self.reset_delay_term).start()
+                    if not self.delay_term:
+                        time = self.dialog_open()
+                        self.Log_text_2.addItem(time)
+                        self.delay_term = True
+                        
+                     
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
                 cv2.polylines(frame, [points_int], True, (255, 0, 0), thickness=2)
             if self.rectangle2_flag:
                 points_int = np.array(self.points2, dtype=np.int32)
                 cv2.polylines(frame, [points_int], True, (255, 0, 0), thickness=2)
+
             self.show_img(self.on_air_camera, self.scene2, frame)
             self.frame_saver.save_frame(frame)
             self.video_widget.setFrame(frame)
+            
+    def reset_delay_term(self):
+        self.delay_term = False
+        print("3초가 지나서 delay_term이 False로 변경되었습니다.")
 
     def show_img(self, element, scene, frame):
         qt_image = QImage(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB).data, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888)
@@ -547,7 +584,6 @@ class WindowClass(QMainWindow, form_class):
         self.Video_bar.setValue(int(frame_position / self.video_processor.frame_count * 100))
 
     def toggle_play_pause(self):
-        print(self.video_processor.is_playing)
         self.video_processor.is_playing = not self.video_processor.is_playing
         icon = QIcon('Video/icon/play.png' if not self.video_processor.is_playing else 'Video/icon/stop-button.png')
         self.btn_stop_start.setIcon(icon)
@@ -576,9 +612,9 @@ class WindowClass(QMainWindow, form_class):
             event.ignore()
 
     def play_saved_frames(self):
-        current_time = datetime.datetime.now()
+        current_time = datetime.now()
         timestamp = current_time.strftime("%Y%m%d%H%M%S")
-        output_path = f'output_video_{timestamp}.mp4'
+        output_path = f'{timestamp}.mp4'
         frame_delay = 1 / 30
 
         try:
@@ -591,6 +627,7 @@ class WindowClass(QMainWindow, form_class):
             self.show_img(self.play_frame_view, self.scene3, frame)
             QCoreApplication.processEvents()
             time.sleep(frame_delay)
+        return timestamp
 
     def dialog_open(self):
         self.dialog = QDialog()
@@ -614,8 +651,9 @@ class WindowClass(QMainWindow, form_class):
         self.dialog.resize(width, height)
 
         self.dialog.show()
-        self.play_saved_frames()
+        time = self.play_saved_frames()
         self.message_label.setText("동영상 저장 완료")
+        return time
 
     def muting(self) :
         if self.checkBox2.isChecked() :
@@ -631,7 +669,6 @@ class WindowClass(QMainWindow, form_class):
     def set_skip_sec(self) :
         select = self.comboBox_2.currentText()
         num = re.findall(r'-?\d+', select)
-        print(num)
         self.skip_num = int(num[0])
 
 
