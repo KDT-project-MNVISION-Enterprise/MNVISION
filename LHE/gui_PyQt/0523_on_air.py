@@ -4,23 +4,22 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5 import uic
 import cv2
-import numpy as np
 from ultralytics import YOLO
+import numpy as np
 import os
 import datetime
 import time
-import sys
 import threading
 
-form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/Video.ui")[0] # Qt designer에서 작성한 ui 파일 불러오기
-ort_session = YOLO('MNVISION/LHE/gui_PyQt/best.onnx') # 모델 파일 불러오기
+form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/practice/Video.ui")[0]
+ort_session = YOLO('MNVISION/LHE/gui_PyQt/practice/best.onnx')
+
 
 class WindowClass2(QMainWindow, form_class): # c
     def __init__(self):
         super().__init__()
         
         self.setupUi(self)
-
         self.scene2 = QGraphicsScene()
         self.on_air_camera.setScene(self.scene2)
         self.btn_start_detection.clicked.connect(self.start_detection_from_button)
