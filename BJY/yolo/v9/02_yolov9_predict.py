@@ -5,14 +5,16 @@ import torch
 import cv2
 from ultralytics import YOLO
 
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 # 커스텀 모델 불러오기
-model = YOLO(r'./runs/detect/yolov9c_custom_1280x7204/weights/best.pt')
+model = YOLO(r'./runs/detect/yolov9c_custom_1280x7203/weights/best.pt')
 # model = YOLO(r'./ysy_models/best.pt')
 
 # GPU 설정 (predict)
-model.to('cuda')
+model.to(DEVICE)
 
 # 비디오 예측
-video_file = "./datasets/Detect_test_Cam6.mp4"
-results = model.predict(source= video_file, save=True, conf=0.6)
+video_file = "./datasets/Detect_test_Cam5.MP4_20240528_171759.mp4"
+results = model.predict(source= video_file, save=True, conf=0.6, device=DEVICE)
 
