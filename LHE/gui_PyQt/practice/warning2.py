@@ -98,7 +98,7 @@ class WindowClass2(QMainWindow, form_class): # c
                 t = int(cls_index)
                 print(t)
 
-                if t == 0 :
+                if t == 1 :
                     danger_detected = True
                     break
 
