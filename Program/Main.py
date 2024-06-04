@@ -25,7 +25,7 @@ form_class = uic.loadUiType(r"MNVISION/Program/UI/Video.ui")[0]
 
 test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test2.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
-form_class = uic.loadUiType("Program/UI/Video.ui")[0]
+form_class = uic.loadUiType("C:\Users\mathn\Desktop\MNVISION\Program\UI\Video.ui")[0]
 ort_session = YOLO('Program/Model/best.onnx')
 ort_session2 = YOLO('Program/Model/best.onnx')
 
@@ -756,12 +756,12 @@ class WindowClass(QMainWindow, form_class):
                     frame, result = self.model.apply_model(frame,lower_coordinates=self.points2)
                 else :
                     frame, result = self.model.apply_model(frame)
-                # if result :
-                #     if not self.delay_term:
-                #         time = self.dialog_open()
-                #         self.Log_text_2.addItem(time)
-                #         self.delay_term = True
-                #         threading.Timer(10, self.reset_delay_term).start()
+                if result :
+                    if not self.delay_term:
+                        time = self.dialog_open()
+                        self.Log_text_2.addItem(time)
+                        self.delay_term = True
+                        threading.Timer(10, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
@@ -843,29 +843,29 @@ class WindowClass(QMainWindow, form_class):
         return timestamp
 
     def dialog_open(self):
-        self.dialog = QDialog()
-        self.dialog.setWindowTitle('영상 저장')
-        self.play_frame_view = QGraphicsView(self.dialog)
-        self.scene3 = QGraphicsScene()
-        self.play_frame_view.setScene(self.scene3)
+        # self.dialog = QDialog()
+        # self.dialog.setWindowTitle('영상 저장')
+        # self.play_frame_view = QGraphicsView(self.dialog)
+        # self.scene3 = QGraphicsScene()
+        # self.play_frame_view.setScene(self.scene3)
 
-        dialog_layout = QVBoxLayout()
-        dialog_layout.addWidget(self.play_frame_view)
-        self.dialog.setLayout(dialog_layout)
+        # dialog_layout = QVBoxLayout()
+        # dialog_layout.addWidget(self.play_frame_view)
+        # self.dialog.setLayout(dialog_layout)
 
-        self.message_label = QLabel("동영상 저장 중", self.dialog)
-        self.message_label.setAlignment(Qt.AlignCenter)
-        self.message_label.setStyleSheet("QLabel {font-size: 24px; font-weight: bold; }")
-        dialog_layout.addWidget(self.message_label)
+        # self.message_label = QLabel("동영상 저장 중", self.dialog)
+        # self.message_label.setAlignment(Qt.AlignCenter)
+        # self.message_label.setStyleSheet("QLabel {font-size: 24px; font-weight: bold; }")
+        # dialog_layout.addWidget(self.message_label)
 
-        screen = QDesktopWidget().screenGeometry()
-        width = screen.width() // 2
-        height = screen.height() // 2
-        self.dialog.resize(width, height)
+        # screen = QDesktopWidget().screenGeometry()
+        # width = screen.width() // 2
+        # height = screen.height() // 2
+        # self.dialog.resize(width, height)
 
-        self.dialog.show()
+        # self.dialog.show()
         time = self.play_saved_frames()
-        self.message_label.setText("동영상 저장 완료")
+        #self.message_label.setText("동영상 저장 완료")
         return time
 
     def muting(self) :

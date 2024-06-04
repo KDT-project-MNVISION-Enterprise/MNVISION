@@ -16,13 +16,17 @@ import csv
 from datetime import datetime
 import subprocess
 from collections import deque
+import torch
 
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test4.mp4"
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test3.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 ort_session = YOLO('Program/Model/best.onnx')
 ort_session2 = YOLO('Program/Model/best.onnx')
+#ort_session = torch.load('Program/Model/best.pt')
+#ort_session2 = torch.load('Program/Model/best.pt')
 danger_detected = False
+danger_delay = False
 
 
 
@@ -94,8 +98,8 @@ class ObjectDetection:
     @staticmethod
     def play_music(file_path):
         pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            time.sleep(1)
+        # while pygame.mixer.music.get_busy():
+        #     time.sleep(1)
     
     def transfer_two_points(self, data):
         X_values = data[:, 0]
@@ -205,17 +209,11 @@ class ObjectDetection:
                 else:
                     cv2_list.append(('Folklift on LOWER RACK', (10,50), self.font, 1, self.b_c))
                 
-                
-                # cv2.putText(frame_detect, input_text, (10, 50), self.font, 1, self.b_c, 1)
-                self.result = True
-                danger_detected=True
-                threading.Thread(target=self.play_music, args=(mp3_file,)).start()
-                
         else:
             self.count = 1
         
         # cv2_list.append('END')
-        return
+        return 
 
     
     
@@ -389,9 +387,6 @@ class ObjectDetection:
             #results[0].plot()
 
             for result in results:
-                
-                
-                
                 boxes = result.boxes.xyxy.cpu().numpy()
                 class_ids = result.boxes.cls.cpu().numpy().astype(int)
                 value = np.inf
@@ -407,8 +402,12 @@ class ObjectDetection:
                     list_box = [x1, y1, x2, y2]
                     ### 임소영
                     self.yimsoyoung(list_ysy, class_ids, label, list_box, value, value2, cv2_list)
-
-
+            
+            self.result = True
+            global danger_detected, danger_delay
+            if not danger_detected and not danger_delay:
+                danger_detected=True
+                self.play_music(mp3_file)
             ### -------------------------------------------------------------------------
             ### 변주영 알고리즘 
             ### -------------------------------------------------------------------------
@@ -547,7 +546,7 @@ class SelectAreaDialog(QDialog):
             if not self.isVisible():  
                 frame_size = self.video_widget.getFrameSize()
                 if frame_size:
-                    self.resize(frame_size[0] + 100, frame_size[1] + 100)  # Add extra space
+                    self.resize(frame_size[0], frame_size[1])
                 self.show()
         else:
             self.timer.stop()
@@ -636,10 +635,12 @@ class WindowClass(QMainWindow, form_class):
         self.danger_timer = QTimer()
         self.danger_timer.timeout.connect(self.toggle_red_overlay)
         self.danger_timer.start(500)
-        QTimer.singleShot(2400, self.stop_timer)
+        QTimer.singleShot(3900, self.stop_timer)
 
     def stop_timer(self):
         self.danger_timer.stop()
+        global danger_detected
+        danger_detected=False
         
     def play_video(self, item):
         video_filename = f"{item.text()}.mp4"
@@ -776,6 +777,8 @@ class WindowClass(QMainWindow, form_class):
                         self.Log_text_2.addItem(time)
                         self.delay_term = True
                         self.danger_run()
+                        global danger_delay
+                        danger_delay = True
                         threading.Timer(10, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
@@ -791,6 +794,11 @@ class WindowClass(QMainWindow, form_class):
             
     def reset_delay_term(self):
         self.delay_term = False
+        global danger_delay
+        danger_delay=False
+        
+        global danger_detected
+        danger_detected = False
         print("10초가 지나서 delay_term이 False로 변경되었습니다.")
 
     def show_img(self, element, scene, frame):
@@ -852,37 +860,39 @@ class WindowClass(QMainWindow, form_class):
         except ValueError as e:
             print(e)
             return
-
-        for frame in self.frame_saver.frames:
-            self.show_img(self.play_frame_view, self.scene3, frame)
-            QCoreApplication.processEvents()
-            time.sleep(frame_delay)
+        # for frame in self.frame_saver.frames:
+        #     #self.show_img(self.play_frame_view, self.scene3, frame)
+        #     self.show_img(self.on_air_camera, self.scene2, frame)
+        #     if danger_detected:
+        #         self.add_red_overlay()
+        #     QCoreApplication.processEvents()
+        #     time.sleep(frame_delay)
         return timestamp
 
     def dialog_open(self):
-        self.dialog = QDialog()
-        self.dialog.setWindowTitle('영상 저장')
-        self.play_frame_view = QGraphicsView(self.dialog)
-        self.scene3 = QGraphicsScene()
-        self.play_frame_view.setScene(self.scene3)
+        # self.dialog = QDialog()
+        # self.dialog.setWindowTitle('영상 저장')
+        # self.play_frame_view = QGraphicsView(self.dialog)
+        # self.scene3 = QGraphicsScene()
+        # self.play_frame_view.setScene(self.scene3)
 
-        dialog_layout = QVBoxLayout()
-        dialog_layout.addWidget(self.play_frame_view)
-        self.dialog.setLayout(dialog_layout)
+        # dialog_layout = QVBoxLayout()
+        # dialog_layout.addWidget(self.play_frame_view)
+        # self.dialog.setLayout(dialog_layout)
 
-        self.message_label = QLabel("동영상 저장 중", self.dialog)
-        self.message_label.setAlignment(Qt.AlignCenter)
-        self.message_label.setStyleSheet("QLabel {font-size: 24px; font-weight: bold; }")
-        dialog_layout.addWidget(self.message_label)
+        # self.message_label = QLabel("동영상 저장 중", self.dialog)
+        # self.message_label.setAlignment(Qt.AlignCenter)
+        # self.message_label.setStyleSheet("QLabel {font-size: 24px; font-weight: bold; }")
+        # dialog_layout.addWidget(self.message_label)
 
-        screen = QDesktopWidget().screenGeometry()
-        width = screen.width() // 2
-        height = screen.height() // 2
-        self.dialog.resize(width, height)
+        # screen = QDesktopWidget().screenGeometry()
+        # width = screen.width() // 2
+        # height = screen.height() // 2
+        # self.dialog.resize(width, height)
 
-        self.dialog.show()
+        # self.dialog.show()
         time = self.play_saved_frames()
-        self.message_label.setText("동영상 저장 완료")
+        #self.message_label.setText("동영상 저장 완료")
         return time
 
     def muting(self) :
