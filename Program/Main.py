@@ -17,7 +17,7 @@ import datetime
 import subprocess
 from collections import deque
 import torch
-
+from qt_material import apply_stylesheet
 
 ### 본인의 작업환경에 맞게 파일경로 수정 필요 ###
 # 임소영 ===========================================================
@@ -43,6 +43,7 @@ ort_session2 = YOLO('Program/Model/best.onnx')
 
 danger_detected = False
 danger_delay = False
+mute = False
 #=========================================================================
 
 
@@ -112,6 +113,7 @@ class ObjectDetection:
         ##########################################
         pygame.mixer.init()
         pygame.mixer.music.load(mp3_file)
+        global mute
 
     @staticmethod
     def play_music(file_path):
@@ -170,7 +172,7 @@ class ObjectDetection:
                     if (f_x1-50 <= x2 <= f_x2+50) and (f_y1-50 <= y2 <= f_y2+50):
                         cv2_list.append(('Person on FORKLIFT', (10,700), self.font, 1, self.b_c, 3))
                         print('Person on FORKLIFT')
-                        self.danger()
+                        if not mute : self.danger()
 
                 
         # Rack에 사람이 있는 경우 알림 표시
@@ -182,11 +184,11 @@ class ObjectDetection:
             if upper_coordinates and (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
                 cv2_list.append(('Person on UPPER RACK', txt_pt, self.font, 1, self.b_c, 3))
                 print('Person on upper rack')
-                self.danger()
+                if not mute : self.danger()
             if lower_coordinates and (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
                 cv2_list.append(('Person on LOWER RACK', txt_pt, self.font, 1, self.b_c, 3))
                 print('Person on lower rack')
-                self.danger()
+                if not mute : self.danger()
 
         # Forklift가 Rack 공간에 작업 중인 경우 알림 표시 
         elif (label == 'Forklift(H)') or (label == 'Forklift(D)'):
@@ -626,7 +628,6 @@ class WindowClass(QMainWindow, form_class):
         self.btn_forward.clicked.connect(self.forward)
         self.btn_prev.clicked.connect(self.backward)
         self.Video_bar.valueChanged.connect(self.slider_moved)
-        self.progressBar.setValue(0)
         self.rack_btn_1.clicked.connect(lambda: self.open_select_area_dialog(1))
         self.rack_btn_2.clicked.connect(lambda: self.open_select_area_dialog(2))
         self.rack_btn_3.clicked.connect(lambda: self.draw_rectangle(1))
@@ -923,10 +924,13 @@ class WindowClass(QMainWindow, form_class):
         return time
 
     def muting(self) :
+        global mute
         if self.checkBox2.isChecked() :
             self.checkBox2.setText("On")
+            mute=True
         else :
             self.checkBox2.setText("Off")
+            mute=False
 
     def set_save_frame_sec(self) :
         select = self.comboBox.currentText()
@@ -942,5 +946,6 @@ class WindowClass(QMainWindow, form_class):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWindow = WindowClass()
+    apply_stylesheet(app, theme="dark_red.xml")
     myWindow.show()
     sys.exit(app.exec_())

@@ -27,7 +27,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>1</number>
     </property>
     <property name="documentMode">
      <bool>false</bool>
@@ -142,27 +142,14 @@
      <widget class="QPushButton" name="Video_upload">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>91</width>
-        <height>23</height>
+        <x>350</x>
+        <y>0</y>
+        <width>271</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
        <string>동영상 업로드</string>
-      </property>
-     </widget>
-     <widget class="QProgressBar" name="progressBar">
-      <property name="geometry">
-       <rect>
-        <x>110</x>
-        <y>20</y>
-        <width>821</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="value">
-       <number>24</number>
       </property>
      </widget>
     </widget>
@@ -213,9 +200,9 @@
       <property name="geometry">
        <rect>
         <x>60</x>
-        <y>290</y>
+        <y>180</y>
         <width>521</width>
-        <height>71</height>
+        <height>111</height>
        </rect>
       </property>
       <property name="title">
@@ -227,14 +214,14 @@
          <x>0</x>
          <y>20</y>
          <width>521</width>
-         <height>46</height>
+         <height>91</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_4">
         <item row="0" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
-           <string>  위험상황 기준 전후 상황 기록 </string>
+           <string>위험상황 기준 전후 상황 기록 </string>
           </property>
          </widget>
         </item>
@@ -313,8 +300,8 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>590</y>
-        <width>901</width>
+        <y>540</y>
+        <width>931</width>
         <height>81</height>
        </rect>
       </property>
@@ -331,10 +318,10 @@
      <widget class="QLabel" name="Log_2">
       <property name="geometry">
        <rect>
-        <x>800</x>
-        <y>40</y>
-        <width>158</width>
-        <height>21</height>
+        <x>810</x>
+        <y>20</y>
+        <width>81</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="text">
@@ -344,10 +331,10 @@
      <widget class="QListWidget" name="Log_text_2">
       <property name="geometry">
        <rect>
-        <x>740</x>
-        <y>60</y>
+        <x>770</x>
+        <y>100</y>
         <width>158</width>
-        <height>521</height>
+        <height>431</height>
        </rect>
       </property>
      </widget>
@@ -355,19 +342,19 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>60</y>
-        <width>721</width>
-        <height>521</height>
+        <y>100</y>
+        <width>761</width>
+        <height>431</height>
        </rect>
       </property>
      </widget>
      <widget class="QLabel" name="Log_4">
       <property name="geometry">
        <rect>
-        <x>330</x>
-        <y>30</y>
-        <width>158</width>
-        <height>31</height>
+        <x>240</x>
+        <y>10</y>
+        <width>271</width>
+        <height>81</height>
        </rect>
       </property>
       <property name="text">
@@ -377,10 +364,10 @@
      <widget class="QPushButton" name="rack_btn_1">
       <property name="geometry">
        <rect>
-        <x>940</x>
-        <y>60</y>
-        <width>75</width>
-        <height>23</height>
+        <x>950</x>
+        <y>170</y>
+        <width>101</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="text">
@@ -390,30 +377,30 @@
      <widget class="QTextBrowser" name="rack_text_1">
       <property name="geometry">
        <rect>
-        <x>940</x>
-        <y>90</y>
-        <width>141</width>
-        <height>192</height>
+        <x>950</x>
+        <y>231</y>
+        <width>190</width>
+        <height>140</height>
        </rect>
       </property>
      </widget>
      <widget class="QTextBrowser" name="rack_text_2">
       <property name="geometry">
        <rect>
-        <x>940</x>
-        <y>360</y>
-        <width>141</width>
-        <height>192</height>
+        <x>950</x>
+        <y>480</y>
+        <width>190</width>
+        <height>140</height>
        </rect>
       </property>
      </widget>
      <widget class="QPushButton" name="rack_btn_2">
       <property name="geometry">
        <rect>
-        <x>940</x>
-        <y>330</y>
-        <width>75</width>
-        <height>23</height>
+        <x>950</x>
+        <y>430</y>
+        <width>101</width>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -423,10 +410,10 @@
      <widget class="QPushButton" name="rack_btn_3">
       <property name="geometry">
        <rect>
-        <x>1010</x>
-        <y>60</y>
-        <width>75</width>
-        <height>23</height>
+        <x>1050</x>
+        <y>170</y>
+        <width>91</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="text">
@@ -436,10 +423,10 @@
      <widget class="QPushButton" name="rack_btn_4">
       <property name="geometry">
        <rect>
-        <x>1010</x>
-        <y>330</y>
-        <width>75</width>
-        <height>23</height>
+        <x>1050</x>
+        <y>430</y>
+        <width>91</width>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -449,10 +436,10 @@
      <widget class="QLabel" name="label">
       <property name="geometry">
        <rect>
-        <x>1000</x>
-        <y>40</y>
-        <width>54</width>
-        <height>12</height>
+        <x>1020</x>
+        <y>130</y>
+        <width>70</width>
+        <height>40</height>
        </rect>
       </property>
       <property name="text">
@@ -462,10 +449,10 @@
      <widget class="QLabel" name="label_2">
       <property name="geometry">
        <rect>
-        <x>1000</x>
-        <y>310</y>
-        <width>54</width>
-        <height>12</height>
+        <x>1010</x>
+        <y>390</y>
+        <width>70</width>
+        <height>40</height>
        </rect>
       </property>
       <property name="text">
