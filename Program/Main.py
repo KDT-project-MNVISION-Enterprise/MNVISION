@@ -382,16 +382,18 @@ class ObjectDetection:
                 u_x1, u_y1, u_x2, u_y2 = self.transfer_two_points(np.array(upper_coordinates, dtype=np.int32))
                 frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.g_c, self.thick)
                 frame = cv2.putText(frame, 'upper_rack', (u_x1, u_y1 - 10), self.font, 1, self.g_c, self.thick)
+            else :
+                u_x1, u_y1, u_x2, u_y2 = 0, 0, 0, 0
 
             if lower_coordinates:
                 l_x1, l_y1, l_x2, l_y2 = self.transfer_two_points(np.array(lower_coordinates, dtype=np.int32))
                 frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.g_c, self.thick)
                 frame = cv2.putText(frame, 'lower_rack', (l_x1, l_y1 - 10), self.font, 1, self.g_c, self.thick)
+            else : 
+                l_x1, l_y1, l_x2, l_y2 = 0, 0, 0, 0
             
-            results = self.model.predict(frame, conf=0.4)
+            results = self.model.predict(frame, conf=0.6)
             cv2_list = []
-            
-            #results[0].plot()
 
             for result in results:
                 boxes = result.boxes.xyxy.cpu().numpy()
@@ -401,12 +403,10 @@ class ObjectDetection:
 
                 for box, class_id in zip(boxes, class_ids):
                     x1, y1, x2, y2 = map(int, box)
-
                     label = self.model.names[class_id]
-                    # print(f"좌표: ({x1}, {y1}) - ({x2}, {y2})  라벨: {label}")
-                    
                     list_ysy = [upper_coordinates, lower_coordinates, u_x1, u_y1, u_x2, u_y2, l_x1, l_y1, l_x2, l_y2]
                     list_box = [x1, y1, x2, y2]
+
                     ### 임소영
                     self.yimsoyoung(list_ysy, class_ids, label, list_box, value, value2, cv2_list)
 
