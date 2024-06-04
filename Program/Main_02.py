@@ -17,11 +17,12 @@ from datetime import datetime
 import subprocess
 from collections import deque
 
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test2.mp4"
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test4.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 ort_session = YOLO('Program/Model/best.onnx')
 ort_session2 = YOLO('Program/Model/best.onnx')
+danger_detected = False
 
 
 
@@ -207,7 +208,9 @@ class ObjectDetection:
                 
                 # cv2.putText(frame_detect, input_text, (10, 50), self.font, 1, self.b_c, 1)
                 self.result = True
+                danger_detected=True
                 threading.Thread(target=self.play_music, args=(mp3_file,)).start()
+                
         else:
             self.count = 1
         
@@ -619,7 +622,25 @@ class WindowClass(QMainWindow, form_class):
         self.timer_video = QTimer(self)
         self.timer_video.timeout.connect(self.process_video)
         self.timer.start(15)
-    
+        
+    def add_red_overlay(self):
+        red_overlay = QGraphicsRectItem(0, 0, self.on_air_camera.width(), self.on_air_camera.height())
+        red_overlay.setBrush(QBrush(QColor(255, 0, 0, 127)))  # Red color with 50% transparency
+        self.scene2.addItem(red_overlay)
+
+    def toggle_red_overlay(self):
+        global danger_detected
+        danger_detected=not danger_detected
+
+    def danger_run(self):
+        self.danger_timer = QTimer()
+        self.danger_timer.timeout.connect(self.toggle_red_overlay)
+        self.danger_timer.start(500)
+        QTimer.singleShot(2400, self.stop_timer)
+
+    def stop_timer(self):
+        self.danger_timer.stop()
+        
     def play_video(self, item):
         video_filename = f"{item.text()}.mp4"
         
@@ -749,12 +770,13 @@ class WindowClass(QMainWindow, form_class):
                     frame, result = self.model.apply_model(frame,lower_coordinates=self.points2)
                 else :
                     frame, result = self.model.apply_model(frame)
-                # if result :
-                #     if not self.delay_term:
-                #         time = self.dialog_open()
-                #         self.Log_text_2.addItem(time)
-                #         self.delay_term = True
-                #         threading.Timer(10, self.reset_delay_term).start()
+                if result :
+                    if not self.delay_term:
+                        time = self.dialog_open()
+                        self.Log_text_2.addItem(time)
+                        self.delay_term = True
+                        self.danger_run()
+                        threading.Timer(10, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
@@ -778,6 +800,8 @@ class WindowClass(QMainWindow, form_class):
         scene.clear()
         scene.addPixmap(scaled_pixmap)
         element.fitInView(scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+        if danger_detected:
+            self.add_red_overlay()
 
     def slider_moved(self, position):
         frame_position = int(position * self.video_processor.frame_count / 100)
