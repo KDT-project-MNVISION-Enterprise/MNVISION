@@ -16,7 +16,6 @@ import csv
 import datetime
 import subprocess
 from collections import deque
-from models.experimental import attempt_load 
 import torch
 
 
@@ -37,10 +36,10 @@ import torch
 test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\no헬멧_위험구역_진입.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
-#ort_session = YOLO('Program/Model/best.onnx')
-#ort_session2 = YOLO('Program/Model/best.onnx')
-ort_session =  attempt_load(r'Program/Model/best.pt',map_location=torch.device('cpu'))
-ort_session2 =  attempt_load('Program/Model/best.pt',map_location=torch.device('cpu'))
+ort_session = YOLO('Program/Model/best.onnx')
+ort_session2 = YOLO('Program/Model/best.onnx')
+#ort_session =  attempt_load(r'Program/Model/best.pt',map_location=torch.device('cpu'))
+#ort_session2 =  attempt_load('Program/Model/best.pt',map_location=torch.device('cpu'))
 
 danger_detected = False
 danger_delay = False
@@ -90,11 +89,11 @@ class VideoProcessor:
         if self.cap is not None:
             self.cap.release()
 
-    
+            
 class ObjectDetection:
     def __init__(self, model):
         self.model = model
-        self.font = cv2.FONT_HERSHEY_COMPLEX_SMALL
+        self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.b_c = (0, 0, 255)      # blue
         self.g_c = (0, 255, 0)      # green
         self.y_c = (255, 255, 0)    # yellow
@@ -119,7 +118,14 @@ class ObjectDetection:
         pygame.mixer.music.play()
         while pygame.mixer.music.get_busy():
             time.sleep(1)
-    
+            
+    def danger(self):
+        self.result = True
+        global danger_detected, danger_delay
+        if not danger_detected and not danger_delay:
+            danger_detected=True
+            threading.Thread(target=self.play_music, args=(mp3_file,)).start()
+            
     def transfer_two_points(self, data):
         X_values = data[:, 0]
         Y_values = data[:, 1]
@@ -132,12 +138,7 @@ class ObjectDetection:
 
         return min_X, min_Y, max_X, max_Y
     
-    def danger(self):
-        self.result = True
-        global danger_detected, danger_delay
-        if not danger_detected and not danger_delay:
-            danger_detected=True
-            threading.Thread(target=self.play_music, args=(mp3_file,)).start()
+
 
     ### 임소영 알고리즘 함수
     def yimsoyoung(self, list_ysy, class_ids, label, list_box, value, value2, cv2_list):
@@ -158,39 +159,38 @@ class ObjectDetection:
                 forklift_box = (x1, x2, y1, y2) 
 
             if label == 'Person' : 
-                x2 = (x1 + x2) / 2
-                y2 = (y1 + y2) / 2
+                x2 = ((x1 + x2) / 2) * 1.5
+                y2 = ((y1 + y2) / 2) * 0.5
                 x2 , y2 = int(x2), int(y2)
                 
                 if forklift_box : 
                     f_x1, f_x2, f_y1, f_y2 = forklift_box  # 수정된 부분
+                    f_x1, f_x2 = f_x1 * 1.5 , f_x2 * 1.5
+                    f_y1, f_y2 = f_y1 * 0.5, f_y2 * 0.5
                     if (f_x1-50 <= x2 <= f_x2+50) and (f_y1-50 <= y2 <= f_y2+50):
-                        cv2_list.append(('Person on FORKLIFT', (10,700), self.font, 1, self.b_c))
-                        # cv2.putText(frame_detect, 'Person on FORKLIFT', (10, 700), self.font, 1, self.b_c, 1)
+                        cv2_list.append(('Person on FORKLIFT', (10,700), self.font, 1, self.b_c, 3))
                         print('Person on FORKLIFT')
+                        self.danger()
 
                 
         # Rack에 사람이 있는 경우 알림 표시
         if label == 'Person':
-            x2 = (x1 + x2) / 2
-            y2 = (y1 + y2) / 2
+            x2 = ((x1 + x2) / 2) * 1.5
+            y2 = ((y1 + y2) / 2) * 0.5
             x2 , y2 = int(x2), int(y2)
             txt_pt = (x1, y2 + 30)
             if upper_coordinates and (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
-                cv2_list.append(('Person on UPPER RACK', txt_pt, self.font, 1, self.b_c))
-                # cv2.putText(frame_detect, 'Person on UPPER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
+                cv2_list.append(('Person on UPPER RACK', txt_pt, self.font, 1, self.b_c, 3))
                 print('Person on upper rack')
-                
                 self.danger()
             if lower_coordinates and (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
-                cv2_list.append(('Person on LOWER RACK', txt_pt, self.font, 1, self.b_c))
-                # cv2.putText(frame_detect, 'Person on LOWER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
+                cv2_list.append(('Person on LOWER RACK', txt_pt, self.font, 1, self.b_c, 3))
                 print('Person on lower rack')
                 self.danger()
 
-
+        # Forklift가 Rack 공간에 작업 중인 경우 알림 표시 
         elif (label == 'Forklift(H)') or (label == 'Forklift(D)'):
-            if upper_coordinates and (x1 + x2) / 2 > (u_x1 + u_x2) / 2:
+            if upper_coordinates and ((x1 + x2) / 2 > (u_x1 + u_x2) / 2):
                 # left
                 d_1 = (u_x2 - x1) ** 2 + (u_y1 - y1) ** 2
                 d_1 = np.sqrt(d_1)
@@ -200,7 +200,7 @@ class ObjectDetection:
 
                 value = (d_1 + d_2) / 2
 
-            elif upper_coordinates and (x1 + x2) / 2 < (u_x1 + u_x2) / 2:
+            elif upper_coordinates and ((x1 + x2) / 2 < (u_x1 + u_x2) / 2):
                 # right
                 d_1 = (u_x1 - x2) ** 2 + (u_y1 - y1) ** 2
                 d_1 = np.sqrt(d_1)
@@ -229,24 +229,19 @@ class ObjectDetection:
                 d_4 = np.sqrt(d_4)
 
                 value2 = (d_3 + d_4) / 2
+            print(f"value : {value}   value2 : {value2}")
 
-            if (value < 300) or (value2 < 300):
+            if (value < 800) or (value2 < 800):
                 if value < value2:
-                    cv2_list.append(('Folklift on UPPER RACK', (10,50), self.font, 1, self.b_c))
+                    cv2_list.append(('Folklift on UPPER RACK', (10,70), self.font, 1, self.y_c, 3))
                 else:
-                    cv2_list.append(('Folklift on LOWER RACK', (10,50), self.font, 1, self.b_c))
-                
-                
-                # cv2.putText(frame_detect, input_text, (10, 50), self.font, 1, self.b_c, 1)
+                    cv2_list.append(('Folklift on LOWER RACK', (10,70), self.font, 1, self.y_c, 3))
+
                 self.result = True
                 threading.Thread(target=self.play_music, args=(mp3_file,)).start()
         else:
             self.count = 1
-        
-        # cv2_list.append('END')
-        return
 
-    
     
     def extend_line(self, img, forklift_deque, color, thickness):
         """
@@ -326,7 +321,8 @@ class ObjectDetection:
         elif dy == 0:
             a, b, c = 0, 1, -y1
         else:
-            a, b, c = grad, -1, y1 - (a * x1)
+            a = grad 
+            b, c = -1, y1 - (a * x1)
         
         return a, b, c
 
@@ -404,14 +400,14 @@ class ObjectDetection:
         else:
             if upper_coordinates:
                 u_x1, u_y1, u_x2, u_y2 = self.transfer_two_points(np.array(upper_coordinates, dtype=np.int32))
-                frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.g_c, self.thick)
+                # frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.b_c, self.thick)
                 frame = cv2.putText(frame, 'upper_rack', (u_x1, u_y1 - 10), self.font, 1, self.g_c, self.thick)
             else :
                 u_x1, u_y1, u_x2, u_y2 = 0, 0, 0, 0
 
             if lower_coordinates:
                 l_x1, l_y1, l_x2, l_y2 = self.transfer_two_points(np.array(lower_coordinates, dtype=np.int32))
-                frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.g_c, self.thick)
+                # frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.b_c, self.thick)
                 frame = cv2.putText(frame, 'lower_rack', (l_x1, l_y1 - 10), self.font, 1, self.g_c, self.thick)
             else : 
                 l_x1, l_y1, l_x2, l_y2 = 0, 0, 0, 0
@@ -449,14 +445,18 @@ class ObjectDetection:
             ### -------------------------------------------------------------------------
             ### 변주영 결과 + 임소영 결과 => frame 위에 opencv로 표시 
             ### -------------------------------------------------------------------------
+
+
             if len(cv2_list) > 0 :
                 for k in range(0, len(cv2_list)):
-                    cv2.putText(frame, cv2_list[k][0], cv2_list[k][1], cv2_list[k][2], cv2_list[k][3], cv2_list[k][4])
+                    cv2.putText(frame, cv2_list[k][0], cv2_list[k][1], cv2_list[k][2], cv2_list[k][3], cv2_list[k][4], cv2_list[k][5])
+                                # 프레임, 텍스트 내용, 넣을 위치, 폰트 종류, 폰트 크기, 폰트 색, 폰트 굵기
 
             cv2.putText(frame, 'Object Detection With YOLOv8', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
 
-        return results[0].plot(), self.result
- 
+        return results[0].plot(), self.result           
+            
+
 
 class CameraProcessor:
     def __init__(self, camera_index=0):
@@ -806,7 +806,7 @@ class WindowClass(QMainWindow, form_class):
                         self.danger_run()
                         global danger_delay
                         danger_delay = True
-                        threading.Timer(10, self.reset_delay_term).start()
+                        threading.Timer(6, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
