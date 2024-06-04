@@ -16,19 +16,35 @@ import csv
 import datetime
 import subprocess
 from collections import deque
+from models.experimental import attempt_load 
+import torch
+
 
 ### 본인의 작업환경에 맞게 파일경로 수정 필요 ###
-test_filepath = r"test/video.mp4"
-mp3_file = r"MNVISION\Program\Audio\alarm_bell.mp3"
-form_class = uic.loadUiType(r"MNVISION/Program/UI/Video.ui")[0]
+# 임소영 ===========================================================
+# test_filepath = r"test/video.mp4"
+# mp3_file = r"MNVISION\Program\Audio\alarm_bell.mp3"
+# form_class = uic.loadUiType(r"MNVISION/Program/UI/Video.ui")[0]
+# test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test2.mp4"
+# mp3_file = "Program/Audio/alarm_bell.mp3"
+# form_class = uic.loadUiType("C:\Users\mathn\Desktop\MNVISION\Program\UI\Video.ui")[0]
+# ort_session = YOLO('Program/Model/best.onnx')
+# ort_session2 = YOLO('Program/Model/best.onnx')
+#==========================================================================
 
 
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test2.mp4"
+# 명노아=================================================================
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\no헬멧_위험구역_진입.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
-form_class = uic.loadUiType("C:\Users\mathn\Desktop\MNVISION\Program\UI\Video.ui")[0]
-ort_session = YOLO('Program/Model/best.onnx')
-ort_session2 = YOLO('Program/Model/best.onnx')
+form_class = uic.loadUiType("Program/UI/Video.ui")[0]
+#ort_session = YOLO('Program/Model/best.onnx')
+#ort_session2 = YOLO('Program/Model/best.onnx')
+ort_session =  attempt_load(r'Program/Model/best.pt',map_location=torch.device('cpu'))
+ort_session2 =  attempt_load('Program/Model/best.pt',map_location=torch.device('cpu'))
 
+danger_detected = False
+danger_delay = False
+#=========================================================================
 
 
 
@@ -116,7 +132,12 @@ class ObjectDetection:
 
         return min_X, min_Y, max_X, max_Y
     
-
+    def danger(self):
+        self.result = True
+        global danger_detected, danger_delay
+        if not danger_detected and not danger_delay:
+            danger_detected=True
+            threading.Thread(target=self.play_music, args=(mp3_file,)).start()
 
     ### 임소영 알고리즘 함수
     def yimsoyoung(self, list_ysy, class_ids, label, list_box, value, value2, cv2_list):
@@ -159,10 +180,13 @@ class ObjectDetection:
                 cv2_list.append(('Person on UPPER RACK', txt_pt, self.font, 1, self.b_c))
                 # cv2.putText(frame_detect, 'Person on UPPER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
                 print('Person on upper rack')
+                
+                self.danger()
             if lower_coordinates and (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
                 cv2_list.append(('Person on LOWER RACK', txt_pt, self.font, 1, self.b_c))
                 # cv2.putText(frame_detect, 'Person on LOWER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
                 print('Person on lower rack')
+                self.danger()
 
 
         elif (label == 'Forklift(H)') or (label == 'Forklift(D)'):
@@ -549,7 +573,7 @@ class SelectAreaDialog(QDialog):
             if not self.isVisible():  
                 frame_size = self.video_widget.getFrameSize()
                 if frame_size:
-                    self.resize(frame_size[0] + 100, frame_size[1] + 100)  # Add extra space
+                    self.resize(frame_size[0], frame_size[1])
                 self.show()
         else:
             self.timer.stop()
@@ -580,14 +604,12 @@ class WindowClass(QMainWindow, form_class):
         self.video_widget = VideoWidget()
         self.model = ObjectDetection(ort_session)
 
-        self.model_flag = False # 탐지 할지말지
-        self.rectangle1_flag = False # 랙 그리는 플래그 변수
+        self.model_flag = False
+        self.rectangle1_flag = False
         self.rectangle2_flag = False
-
-        self.delay_term=True # 위험상황 인식 딜레이
-        self.points1 = [] # 랙 좌표
-        self.points2 = [] # 랙 좌표2
-
+        self.delay_term=False
+        self.points1 = []
+        self.points2 = []
 
         self.skip_num = 5
         self.btn_start_detection.clicked.connect(self.toggle_model)
@@ -605,9 +627,9 @@ class WindowClass(QMainWindow, form_class):
         self.btn_prev.clicked.connect(self.backward)
         self.Video_bar.valueChanged.connect(self.slider_moved)
         self.progressBar.setValue(0)
-        self.rack_btn_1.clicked.connect(lambda: self.open_select_area_dialog(1)) # 랙 설정
+        self.rack_btn_1.clicked.connect(lambda: self.open_select_area_dialog(1))
         self.rack_btn_2.clicked.connect(lambda: self.open_select_area_dialog(2))
-        self.rack_btn_3.clicked.connect(lambda: self.draw_rectangle(1)) # 랙 표시
+        self.rack_btn_3.clicked.connect(lambda: self.draw_rectangle(1))
         self.rack_btn_4.clicked.connect(lambda: self.draw_rectangle(2))
 
         self.checkBox2.clicked.connect(self.muting)
@@ -626,7 +648,27 @@ class WindowClass(QMainWindow, form_class):
         self.timer_video = QTimer(self)
         self.timer_video.timeout.connect(self.process_video)
         self.timer.start(15)
-    
+        
+    def add_red_overlay(self):
+        red_overlay = QGraphicsRectItem(0, 0, self.on_air_camera.width(), self.on_air_camera.height())
+        red_overlay.setBrush(QBrush(QColor(255, 0, 0, 127)))  # Red color with 50% transparency
+        self.scene2.addItem(red_overlay)
+
+    def toggle_red_overlay(self):
+        global danger_detected
+        danger_detected=not danger_detected
+
+    def danger_run(self):
+        self.danger_timer = QTimer()
+        self.danger_timer.timeout.connect(self.toggle_red_overlay)
+        self.danger_timer.start(500)
+        QTimer.singleShot(3900, self.stop_timer)
+
+    def stop_timer(self):
+        self.danger_timer.stop()
+        global danger_detected
+        danger_detected=False
+        
     def play_video(self, item):
         video_filename = f"{item.text()}.mp4"
         
@@ -670,7 +712,7 @@ class WindowClass(QMainWindow, form_class):
             self.rectangle2_flag = False
         self.coordinate_box=num
         self.camera_processor.cap.release() # 메모리 해제 
-        self.dialog = SelectAreaDialog(test_filepath, self) # 클래스 변수 생성 
+        self.dialog = SelectAreaDialog(test_filepath, self)
         self.dialog.finished.connect(self.on_dialog_finished)
         self.dialog.show()
         
@@ -761,14 +803,17 @@ class WindowClass(QMainWindow, form_class):
                         time = self.dialog_open()
                         self.Log_text_2.addItem(time)
                         self.delay_term = True
+                        self.danger_run()
+                        global danger_delay
+                        danger_delay = True
                         threading.Timer(10, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
-                cv2.polylines(frame, [points_int], True, (0, 0, 255), thickness=6)
+                cv2.polylines(frame, [points_int], True, (255, 0, 0), thickness=2)
             if self.rectangle2_flag:
                 points_int = np.array(self.points2, dtype=np.int32)
-                cv2.polylines(frame, [points_int], True, (0, 0, 255), thickness=6)
+                cv2.polylines(frame, [points_int], True, (255, 0, 0), thickness=2)
 
             self.show_img(self.on_air_camera, self.scene2, frame)
             self.frame_saver.save_frame(frame)
@@ -776,6 +821,11 @@ class WindowClass(QMainWindow, form_class):
             
     def reset_delay_term(self):
         self.delay_term = False
+        global danger_delay
+        danger_delay=False
+        
+        global danger_detected
+        danger_detected = False
         print("10초가 지나서 delay_term이 False로 변경되었습니다.")
 
     def show_img(self, element, scene, frame):
@@ -785,6 +835,8 @@ class WindowClass(QMainWindow, form_class):
         scene.clear()
         scene.addPixmap(scaled_pixmap)
         element.fitInView(scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+        if danger_detected:
+            self.add_red_overlay()
 
     def slider_moved(self, position):
         frame_position = int(position * self.video_processor.frame_count / 100)
@@ -835,11 +887,13 @@ class WindowClass(QMainWindow, form_class):
         except ValueError as e:
             print(e)
             return
-
-        for frame in self.frame_saver.frames:
-            self.show_img(self.play_frame_view, self.scene3, frame)
-            QCoreApplication.processEvents()
-            time.sleep(frame_delay)
+        # for frame in self.frame_saver.frames:
+        #     #self.show_img(self.play_frame_view, self.scene3, frame)
+        #     self.show_img(self.on_air_camera, self.scene2, frame)
+        #     if danger_detected:
+        #         self.add_red_overlay()
+        #     QCoreApplication.processEvents()
+        #     time.sleep(frame_delay)
         return timestamp
 
     def dialog_open(self):
