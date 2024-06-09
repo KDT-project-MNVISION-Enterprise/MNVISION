@@ -9,6 +9,7 @@ from functools import partial
 
 form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/practice/test.ui")[0] # Qt designer에서 작성한 ui 파일 불러오기
 ort_session = YOLO('MNVISION/LHE/gui_PyQt/practice/best.onnx') # 모델 파일 불러오기
+danger_detected = False
 
 class WindowClass2(QMainWindow, form_class): # c
     def __init__(self):
@@ -38,14 +39,17 @@ class WindowClass2(QMainWindow, form_class): # c
         # 현재 탐지 결과를 저장할 속성 추가
         self.current_detection_results = None
 
-        # CSS 파일을 로드하여 스타일을 적용
-        self.loadStyleSheet("MNVISION/LHE/gui_PyQt/practice/style.css")
+        self.width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
-    def loadStyleSheet(self, filename):
-        file = QFile(filename)
-        file.open(QFile.ReadOnly | QFile.Text)
-        stream = QTextStream(file)
-        self.setStyleSheet(stream.readAll())
+    #     # CSS 파일을 로드하여 스타일을 적용
+    #     self.loadStyleSheet("MNVISION/LHE/gui_PyQt/practice/style.css")
+
+    # def loadStyleSheet(self, filename):
+    #     file = QFile(filename)
+    #     file.open(QFile.ReadOnly | QFile.Text)
+    #     stream = QTextStream(file)
+    #     self.setStyleSheet(stream.readAll())
 
     def update_frame(self):
         ret, frame = self.cap.read()
@@ -80,11 +84,10 @@ class WindowClass2(QMainWindow, form_class): # c
             self.updateColor(results)  # 색상 업데이트 추가
 
     def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-
-        painter.setBrush(QBrush(self.current_color))  # 현재 색상으로 사각형 그리기
-        painter.drawRect(self.rect())
+        rect = QGraphicsRectItem()
+        rect.setRect(0, 0, self.width, self.height)
+        rect.setBrush(self.current_color)
+        self.scene2.addItem(rect)
 
     def updateColor(self, results):
         # 탐지 결과를 이용하여 색상 업데이트
@@ -121,6 +124,11 @@ class WindowClass2(QMainWindow, form_class): # c
         self.scene2.clear()
         self.scene2.addPixmap(scaled_pixmap)
         self.camera.fitInView(self.scene2.itemsBoundingRect(), Qt.KeepAspectRatio)
+        self.dectected_object()
+
+    def dectected_object(self):
+        global danger_detected
+        danger_detected = not danger_detected
 
     def closeEvent(self, QCloseEvent):
         re = QMessageBox.question(self, "종료 확인", "종료 하시겠습니까?",

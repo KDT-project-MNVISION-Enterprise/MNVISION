@@ -14,6 +14,7 @@ import re
 form_class = uic.loadUiType("MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/Video.ui")[0]
 ort_session = YOLO('MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/best.onnx')
 ort_session2 = YOLO('MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/best.onnx')
+danger_detected = False
 
 class VideoProcessor:
     def __init__(self, filepath=None):
@@ -76,6 +77,41 @@ class CameraProcessor:
     def release(self):
         if self.cap is not None:
             self.cap.release()
+
+    def paintEvent(self, event):
+        width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        rect = QGraphicsRectItem()
+        rect.setRect(0, 0, width, height)
+        rect.setBrush(self.current_color)
+        self.scene2.addItem(rect)
+
+    def updateColor(self, results):
+        # 탐지 결과를 이용하여 색상 업데이트
+        danger_detected = False  # 위험 상황 감지 여부 초기화
+
+        if results:
+            class_labels_tensor = results[0].boxes.cls  # 클래스 라벨 텐서
+            class_labels_list = class_labels_tensor.tolist()  # 텐서를 리스트로 변환
+
+            for cls_index in class_labels_list:
+                t = int(cls_index)
+                print(t)
+
+                if t == 1 :
+                    danger_detected = True
+                    break
+
+        if danger_detected:
+            if self.current_color != self.danger_color:  # 이전 색상이 빨간색이 아닌 경우에만 변경
+                self.current_color = self.danger_color  # 빨간색으로 변경
+        else:
+            if self.current_color != self.normal_color:  # 이전 색상이 투명색이 아닌 경우에만 변경
+                self.current_color = self.normal_color  # 투명색으로 변경
+
+        self.update()  # GUI 업데이트        
+    
+
 
 class FrameSaver:
     def __init__(self):
@@ -355,6 +391,11 @@ class WindowClass(QMainWindow, form_class):
         scene.clear()
         scene.addPixmap(scaled_pixmap)
         element.fitInView(scene.itemsBoundingRect(), Qt.KeepAspectRatio)
+        self.dectected_object()
+
+    def dectected_object(self):
+        global danger_detected
+        danger_detected = not danger_detected
 
     def slider_moved(self, position):
         frame_position = int(position * self.video_processor.frame_count / 100)

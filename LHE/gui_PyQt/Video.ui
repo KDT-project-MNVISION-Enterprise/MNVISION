@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>698</width>
-    <height>631</height>
+    <width>1292</width>
+    <height>831</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,16 +15,19 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QTabWidget" name="on_air_detection">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
-      <x>0</x>
+      <x>10</x>
       <y>0</y>
-      <width>701</width>
-      <height>591</height>
+      <width>1151</width>
+      <height>751</height>
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>1</number>
     </property>
     <property name="documentMode">
      <bool>false</bool>
@@ -37,19 +40,19 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>60</y>
-        <width>511</width>
-        <height>401</height>
+        <y>50</y>
+        <width>931</width>
+        <height>561</height>
        </rect>
       </property>
      </widget>
      <widget class="QWidget" name="gridLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>470</y>
-        <width>501</width>
-        <height>71</height>
+        <x>30</x>
+        <y>610</y>
+        <width>911</width>
+        <height>91</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout">
@@ -107,10 +110,10 @@
      <widget class="QWidget" name="verticalLayoutWidget">
       <property name="geometry">
        <rect>
-        <x>530</x>
-        <y>10</y>
-        <width>160</width>
-        <height>531</height>
+        <x>949</x>
+        <y>50</y>
+        <width>181</width>
+        <height>651</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout">
@@ -139,27 +142,14 @@
      <widget class="QPushButton" name="Video_upload">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>91</width>
-        <height>23</height>
+        <x>350</x>
+        <y>0</y>
+        <width>271</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
        <string>동영상 업로드</string>
-      </property>
-     </widget>
-     <widget class="QProgressBar" name="progressBar">
-      <property name="geometry">
-       <rect>
-        <x>110</x>
-        <y>20</y>
-        <width>401</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="value">
-       <number>24</number>
       </property>
      </widget>
     </widget>
@@ -189,84 +179,17 @@
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_2">
-        <item row="0" column="0">
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>로그 기록</string>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="1">
-         <widget class="QCheckBox" name="checkBox1">
-          <property name="text">
-           <string>Off(Save in TXT)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
          <widget class="QCheckBox" name="checkBox2">
           <property name="text">
            <string>Off</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="0">
+        <item row="0" column="0">
          <widget class="QLabel" name="label_4">
           <property name="text">
            <string>뮤트(Mute)</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="groupBox_2">
-      <property name="geometry">
-       <rect>
-        <x>60</x>
-        <y>160</y>
-        <width>521</width>
-        <height>101</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Graphic</string>
-      </property>
-      <widget class="QWidget" name="gridLayoutWidget_3">
-       <property name="geometry">
-        <rect>
-         <x>0</x>
-         <y>20</y>
-         <width>521</width>
-         <height>80</height>
-        </rect>
-       </property>
-       <layout class="QGridLayout" name="gridLayout_3">
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_5">
-          <property name="text">
-           <string>랙 경계선 표시( Set Border Lines)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QCheckBox" name="checkBox3">
-          <property name="text">
-           <string>Off</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QCheckBox" name="checkBox4">
-          <property name="text">
-           <string>Off</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_6">
-          <property name="text">
-           <string>랙 구분(상,하  Rack Classification Mode)</string>
           </property>
          </widget>
         </item>
@@ -277,9 +200,9 @@
       <property name="geometry">
        <rect>
         <x>60</x>
-        <y>290</y>
+        <y>180</y>
         <width>521</width>
-        <height>71</height>
+        <height>111</height>
        </rect>
       </property>
       <property name="title">
@@ -291,14 +214,14 @@
          <x>0</x>
          <y>20</y>
          <width>521</width>
-         <height>46</height>
+         <height>91</height>
         </rect>
        </property>
        <layout class="QGridLayout" name="gridLayout_4">
         <item row="0" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
-           <string>  위험상황 기준 전후 상황 기록 </string>
+           <string>위험상황 기준 전후 상황 기록 </string>
           </property>
          </widget>
         </item>
@@ -333,7 +256,7 @@
         <item row="1" column="0">
          <widget class="QLabel" name="label_8">
           <property name="text">
-           <string>  위험상황 기준 전후 상황 기록 </string>
+           <string>건너뛰기 간격 </string>
           </property>
          </widget>
         </item>
@@ -376,10 +299,10 @@
      <widget class="QPushButton" name="btn_start_detection">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>460</y>
-        <width>681</width>
-        <height>41</height>
+        <x>0</x>
+        <y>540</y>
+        <width>931</width>
+        <height>81</height>
        </rect>
       </property>
       <property name="font">
@@ -395,10 +318,10 @@
      <widget class="QLabel" name="Log_2">
       <property name="geometry">
        <rect>
-        <x>530</x>
-        <y>23</y>
-        <width>158</width>
-        <height>21</height>
+        <x>810</x>
+        <y>20</y>
+        <width>81</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="text">
@@ -408,47 +331,132 @@
      <widget class="QListWidget" name="Log_text_2">
       <property name="geometry">
        <rect>
-        <x>530</x>
-        <y>50</y>
+        <x>770</x>
+        <y>100</y>
         <width>158</width>
-        <height>401</height>
+        <height>431</height>
        </rect>
       </property>
      </widget>
      <widget class="QGraphicsView" name="on_air_camera">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>50</y>
-        <width>511</width>
-        <height>401</height>
+        <x>0</x>
+        <y>100</y>
+        <width>761</width>
+        <height>431</height>
        </rect>
       </property>
      </widget>
      <widget class="QLabel" name="Log_4">
       <property name="geometry">
        <rect>
-        <x>10</x>
-        <y>20</y>
-        <width>158</width>
-        <height>31</height>
+        <x>240</x>
+        <y>10</y>
+        <width>271</width>
+        <height>81</height>
        </rect>
       </property>
       <property name="text">
        <string>실시간 카메라</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="btn_play_3sec">
+     <widget class="QPushButton" name="rack_btn_1">
       <property name="geometry">
        <rect>
-        <x>530</x>
-        <y>510</y>
-        <width>161</width>
-        <height>31</height>
+        <x>950</x>
+        <y>170</y>
+        <width>101</width>
+        <height>61</height>
        </rect>
       </property>
       <property name="text">
-       <string>3초 전 영상 재생</string>
+       <string>랙 설정</string>
+      </property>
+     </widget>
+     <widget class="QTextBrowser" name="rack_text_1">
+      <property name="geometry">
+       <rect>
+        <x>950</x>
+        <y>231</y>
+        <width>190</width>
+        <height>140</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QTextBrowser" name="rack_text_2">
+      <property name="geometry">
+       <rect>
+        <x>950</x>
+        <y>480</y>
+        <width>190</width>
+        <height>140</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="rack_btn_2">
+      <property name="geometry">
+       <rect>
+        <x>950</x>
+        <y>430</y>
+        <width>101</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>랙 설정</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="rack_btn_3">
+      <property name="geometry">
+       <rect>
+        <x>1050</x>
+        <y>170</y>
+        <width>91</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>랙 표시</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="rack_btn_4">
+      <property name="geometry">
+       <rect>
+        <x>1050</x>
+        <y>430</y>
+        <width>91</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>랙 표시</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label">
+      <property name="geometry">
+       <rect>
+        <x>1020</x>
+        <y>130</y>
+        <width>70</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>랙 1</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_2">
+      <property name="geometry">
+       <rect>
+        <x>1010</x>
+        <y>390</y>
+        <width>70</width>
+        <height>40</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>랙 2</string>
       </property>
      </widget>
     </widget>
@@ -459,7 +467,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>698</width>
+     <width>1292</width>
      <height>22</height>
     </rect>
    </property>
