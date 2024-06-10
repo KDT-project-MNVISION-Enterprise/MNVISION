@@ -33,16 +33,27 @@ from qt_material import apply_stylesheet
 
 
 # 명노아=================================================================
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\5번카메라_루프렉사이_진입.mp4"
-mp3_file = "Program/Audio/alarm_bell.mp3"
-form_class = uic.loadUiType("Program/UI/Video.ui")[0]
-ort_session = YOLO('Program/Model/best.onnx')
-ort_session2 = YOLO('Program/Model/best.onnx')
+# test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\no헬멧_위험구역_진입.mp4"
+# mp3_file = "Program/Audio/alarm_bell.mp3"
+# form_class = uic.loadUiType("Program/UI/Video.ui")[0]
+# ort_session = YOLO('Program/Model/best.onnx')
+# ort_session2 = YOLO('Program/Model/best.onnx')
+# #ort_session =  attempt_load(r'Program/Model/best.pt',map_location=torch.device('cpu'))
+# #ort_session2 =  attempt_load('Program/Model/best.pt',map_location=torch.device('cpu'))
+
 danger_detected = False
 danger_delay = False
 mute = False
 #=========================================================================
 
+#이화은=====================================================================
+test_filepath = r"MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/no헬멧_위험구역_진입.mp4"
+mp3_file = r"MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/alarm_bell.mp3"
+form_class = uic.loadUiType(r"MNVISION/LHE/gui_PyQt/Video(3).ui")[0]
+
+ort_session = YOLO(r'MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/best.onnx')
+ort_session2 = YOLO(r'MNVISION/LHE/gui_PyQt/OOP(Object Oriented Programming)/best.onnx')
+#============================================================================
 
 
 class VideoProcessor:
@@ -158,16 +169,14 @@ class ObjectDetection:
                 forklift_box = (x1, x2, y1, y2) 
 
             if label == 'Person' : 
-                X_MUL = 1.0
-                Y_MUL = 1.0
-                x2 = ((x1 + x2) / 2) * X_MUL
-                y2 = ((y1 + y2) / 2) * Y_MUL
+                x2 = ((x1 + x2) / 2) * 1.5
+                y2 = ((y1 + y2) / 2) * 0.5
                 x2 , y2 = int(x2), int(y2)
                 
                 if forklift_box : 
                     f_x1, f_x2, f_y1, f_y2 = forklift_box  # 수정된 부분
-                    f_x1, f_x2 = f_x1 * X_MUL , f_x2 * X_MUL
-                    f_y1, f_y2 = f_y1 * Y_MUL, f_y2 * Y_MUL
+                    f_x1, f_x2 = f_x1 * 1.5 , f_x2 * 1.5
+                    f_y1, f_y2 = f_y1 * 0.5, f_y2 * 0.5
                     if (f_x1-50 <= x2 <= f_x2+50) and (f_y1-50 <= y2 <= f_y2+50):
                         cv2_list.append(('Person on FORKLIFT', (10,700), self.font, 1, self.b_c, 3))
                         print('Person on FORKLIFT')
@@ -176,10 +185,8 @@ class ObjectDetection:
                 
         # Rack에 사람이 있는 경우 알림 표시
         if label == 'Person':
-            X_MUL = 1.0
-            Y_MUL = 1.0
-            x2 = ((x1 + x2) / 2) * X_MUL
-            y2 = ((y1 + y2) / 2) * Y_MUL
+            x2 = ((x1 + x2) / 2) * 1.5
+            y2 = ((y1 + y2) / 2) * 0.5
             x2 , y2 = int(x2), int(y2)
             txt_pt = (x1, y2 + 30)
             if upper_coordinates and (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
@@ -239,6 +246,9 @@ class ObjectDetection:
                     cv2_list.append(('Folklift on UPPER RACK', (10,70), self.font, 1, self.y_c, 3))
                 else:
                     cv2_list.append(('Folklift on LOWER RACK', (10,70), self.font, 1, self.y_c, 3))
+
+                self.result = True
+                threading.Thread(target=self.play_music, args=(mp3_file,)).start()
         else:
             self.count = 1
 
@@ -393,7 +403,6 @@ class ObjectDetection:
     
     def apply_model(self,frame, upper_coordinates=None, lower_coordinates=None):
         ### -------------------------------------------------------------------------
-        
         ### 임소영 알고리즘 
         ### -------------------------------------------------------------------------
         if upper_coordinates is None and lower_coordinates is None:
@@ -662,7 +671,7 @@ class WindowClass(QMainWindow, form_class):
         self.danger_timer = QTimer()
         self.danger_timer.timeout.connect(self.toggle_red_overlay)
         self.danger_timer.start(500)
-        QTimer.singleShot(3100, self.stop_timer)
+        QTimer.singleShot(3900, self.stop_timer)
 
     def stop_timer(self):
         self.danger_timer.stop()
@@ -733,13 +742,6 @@ class WindowClass(QMainWindow, form_class):
         
             
     def load_video_file(self):
-        self.btn_pause.hide()
-        self.Current.hide()
-        self.Total_length.hide()
-        self.Video_bar.hide()
-        self.btn_forward.hide()
-        self.btn_prev.hide()
-        self.btn_stop_start.hide()
         fname = QFileDialog.getOpenFileName(self, 'Open file', './', 'Video files (*.mp4 *.avi)')
         if fname[0]:
             duration = self.video_processor.load_video(fname[0])
@@ -813,7 +815,7 @@ class WindowClass(QMainWindow, form_class):
                         self.danger_run()
                         global danger_delay
                         danger_delay = True
-                        threading.Timer(7, self.reset_delay_term).start()
+                        threading.Timer(6, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
@@ -857,7 +859,7 @@ class WindowClass(QMainWindow, form_class):
 
     def toggle_play_pause(self):
         self.video_processor.is_playing = not self.video_processor.is_playing
-        icon = QIcon('Program/video_icon/play.png' if not self.video_processor.is_playing else 'Program/video_icon/pause2.png') #
+        icon = QIcon('MNVISION/LHE/gui_PyQt/play.png' if not self.video_processor.is_playing else 'MNVISION/LHE/gui_PyQt/pause2.png') #
         self.btn_stop_start.setIcon(icon)
 
     def forward(self):
@@ -952,6 +954,6 @@ class WindowClass(QMainWindow, form_class):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWindow = WindowClass()
-    apply_stylesheet(app, theme="dark_teal.xml", css_file='Program/video_icon/custom.css')
+    apply_stylesheet(app, theme="dark_teal.xml", css_file='MNVISION/LHE/gui_PyQt/custom.css')
     myWindow.show()
     sys.exit(app.exec_())
