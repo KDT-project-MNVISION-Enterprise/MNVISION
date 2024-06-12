@@ -32,21 +32,22 @@ from qt_material import apply_stylesheet
 #==========================================================================
 
 # 변주영 ===================================================================
-#test_filepath = r"BJY/yolo/v8/datasets/safe.mp4"
-#mp3_file = r"Program\Audio\alarm_bell.mp3"
-#form_class = uic.loadUiType(r"Program/UI/Video.ui")[0]
-#ort_session = torch.hub.load('BJY/yolo/v5/yolov5', 'custom', path='BJY/yolo/v5/model/mnv_Model.pt', source='local') # ⭐
-#ort_session2 = torch.hub.load('BJY/yolo/v5/yolov5', 'custom', path='BJY/yolo/v5/model/mnv_Model.pt', source='local') # ⭐
+test_filepath = r"BJY/yolo/v8/datasets/safe.mp4"
+mp3_file = r"Program\Audio\alarm_bell.mp3"
+form_class = uic.loadUiType(r"Program/UI/Video.ui")[0]
+ort_session = torch.hub.load('BJY/yolo/v5/yolov5', 'custom', path='BJY/yolo/v5/model/mnv_Model.pt', source='local') # ⭐
+ort_session2 = torch.hub.load('BJY/yolo/v5/yolov5', 'custom', path='BJY/yolo/v5/model/mnv_Model.pt', source='local') # ⭐
 # =========================================================================
 
 # 명노아=================================================================
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test_bjy1.mp4"
-mp3_file = "Program/Audio/alarm_bell.mp3"
-form_class = uic.loadUiType("Program/UI/Video.ui")[0]
+# test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\5번카메라_루프렉사이_진입.mp4"
+# mp3_file = "Program/Audio/alarm_bell.mp3"
+# form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 # #ort_session = YOLO('Program/Model/best.onnx')
 # #ort_session2 = YOLO('Program/Model/best.onnx')
-ort_session = torch.hub.load('Program/yolov5', 'custom', path='Program/Model/mnv_Model.pt', source='local')
-ort_session2 = torch.hub.load('Program/yolov5', 'custom', path='Program/Model/mnv_Model.pt', source='local')
+# ort_session = torch.hub.load('Program/yolov5', 'custom', path='Program/Model/mnv_Model.pt', source='local')
+# ort_session2 = torch.hub.load('Program/yolov5', 'custom', path='Program/Model/mnv_Model.pt', source='local')
+#=========================================================================
 
 danger_detected = False
 danger_delay = False
