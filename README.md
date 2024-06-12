@@ -100,7 +100,8 @@ KDT 5기 혜모팀의 기업 프로젝트입니다.
 4. 요구사항 정의서 : [링크](https://docs.google.com/spreadsheets/d/1aT5VzIIrWiKlmHyt_mkaFU7nSRwweqj5/edit?usp=sharing&ouid=110067098172194561192&rtpof=true&sd=true)
 5. 클래스 다이어그램 : [링크](https://drive.google.com/file/d/1fm_OE6rampXj4xIVq3pwiGv0Zh4FYyPU/view?usp=sharing)
 6. 시퀀스 다이어그램 : [링크](https://drive.google.com/file/d/1zWUJ-RWFqSquwsO3cUs91bt_WegFkMkh/view?usp=sharing)
-7. 플로우 차트 : [링크]()
+7. 플로우 차트(지게차-사람) : [링크](https://drive.google.com/file/d/1s63vO33PdfCPtxt8tN_efRPfbEJE1bz5/view?usp=sharing)
+8. 플로우 차트(사람-랙, 지게차 작업) : [링크](https://drive.google.com/file/d/13T5X5C5llIw9FJv9rohdK1HcQr1qOWUU/view?usp=sharing)
 
 <hr>
 
