@@ -40,7 +40,7 @@ from qt_material import apply_stylesheet
 # =========================================================================
 
 # 명노아=================================================================
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION2\Program\Video\test_bjy1.mp4"
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION2\Program\Video\final.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 #ort_session = YOLO('Program/Model/best.onnx')
@@ -394,9 +394,14 @@ class ObjectDetection:
         forklift_len = forklift_len * weight
         
         danger_cond1 = True if (forklift_len + person_len) * 0.5 >= dist else False
+    
+        ### 사람으로부터 가까워지는지 체크하는 코드 (추가 예정)
+        dist1 = self.euclidean_dist(x1, y1, p_x1, p_y1)
+        dist2 = self.euclidean_dist(x2, y2, p_x1, p_y1)
+        danger_cond2 = True if (dist1 > dist2) else False
         
         # danger_flag
-        return danger_cond1
+        return danger_cond1 & danger_cond2
 
 
     def detect_danger(self, results, forklift_frames, forklift_valid, forklift_moves):
@@ -795,8 +800,8 @@ class WindowClass(QMainWindow, form_class):
     def danger_run(self):
         self.danger_timer = QTimer()
         self.danger_timer.timeout.connect(self.toggle_red_overlay)
-        self.danger_timer.start(500)
-        QTimer.singleShot(3100, self.stop_timer)
+        self.danger_timer.start(1000)
+        QTimer.singleShot(6100, self.stop_timer)
 
     def stop_timer(self):
         self.danger_timer.stop()
