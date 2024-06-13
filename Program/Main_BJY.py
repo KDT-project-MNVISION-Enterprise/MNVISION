@@ -13,21 +13,45 @@ import pygame
 import time
 import threading
 import csv
-from datetime import datetime
+import datetime
 import subprocess
 from collections import deque
 import torch
+from qt_material import apply_stylesheet
 
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test3.mp4"
+### 본인의 작업환경에 맞게 파일경로 수정 필요 ###
+# 임소영 ===========================================================
+# test_filepath = r"test/video.mp4"
+# mp3_file = r"MNVISION\Program\Audio\alarm_bell.mp3"
+# form_class = uic.loadUiType(r"MNVISION/Program/UI/Video.ui")[0]
+# test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\test2.mp4"
+# mp3_file = "Program/Audio/alarm_bell.mp3"
+# form_class = uic.loadUiType("C:\Users\mathn\Desktop\MNVISION\Program\UI\Video.ui")[0]
+# ort_session = YOLO('Program/Model/best.onnx')
+# ort_session2 = YOLO('Program/Model/best.onnx')
+#==========================================================================
+
+# 변주영 ===================================================================
+# test_filepath = r"BJY/yolo/v8/datasets/safe.mp4"
+# mp3_file = r"Program\Audio\alarm_bell.mp3"
+# form_class = uic.loadUiType(r"Program/UI/Video.ui")[0]
+# ort_session = torch.hub.load('BJY/yolo/v5/yolov5', 'custom', path='BJY/yolo/v5/model/mnv_Model.pt', source='local') # ⭐
+# ort_session2 = torch.hub.load('BJY/yolo/v5/yolov5', 'custom', path='BJY/yolo/v5/model/mnv_Model.pt', source='local') # ⭐
+# =========================================================================
+
+# 명노아=================================================================
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION2\Program\Video\test_bjy1.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
-ort_session = YOLO('Program/Model/best.onnx')
-ort_session2 = YOLO('Program/Model/best.onnx')
-#ort_session = torch.load('Program/Model/best.pt')
-#ort_session2 = torch.load('Program/Model/best.pt')
+#ort_session = YOLO('Program/Model/best.onnx')
+#ort_session2 = YOLO('Program/Model/best.onnx')
+ort_session = torch.hub.load('Program/yolov5', 'custom', path='Program/Model/mnv_Model.pt', source='local')
+ort_session2 = torch.hub.load('Program/yolov5', 'custom', path='Program/Model/mnv_Model.pt', source='local')
+#=========================================================================
+
 danger_detected = False
 danger_delay = False
-
+mute = False
 
 
 class VideoProcessor:
@@ -72,11 +96,11 @@ class VideoProcessor:
         if self.cap is not None:
             self.cap.release()
 
-    
+            
 class ObjectDetection:
     def __init__(self, model):
         self.model = model
-        self.font = cv2.FONT_HERSHEY_COMPLEX_SMALL
+        self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.b_c = (0, 0, 255)      # blue
         self.g_c = (0, 255, 0)      # green
         self.y_c = (255, 255, 0)    # yellow
@@ -87,20 +111,32 @@ class ObjectDetection:
         self.result = False
         self.current_frame_pos = 0
         ##########################################
-        self.forklift_frames = deque(maxlen=3)
-        self.frame_interval = 3
-        self.forklift_valid, self.person_valid = False, False 
-        self.cv2_labels = []
+        ### 변주영 알고리즘
+        self.DEQUE_MAXLEN = 5
+        self.forklift_frames = deque(maxlen=self.DEQUE_MAXLEN) # 😎
+        self.person_frames = deque(maxlen=self.DEQUE_MAXLEN) # 😎
+        self.frame_interval = 3 # 프레임 간격 설정 (가변적)
+        self.forklift_valid, self.forklift_moves, self.person_valid = False, False, False 
+        self.MOVE_OR_NOT = 7 # 지게차 움직임의 기준치
+        self.cv2_labels = [] # 마지막에 적용할 cv2 사항들
         ##########################################
         pygame.mixer.init()
         pygame.mixer.music.load(mp3_file)
+        global mute
 
     @staticmethod
     def play_music(file_path):
         pygame.mixer.music.play()
-        # while pygame.mixer.music.get_busy():
-        #     time.sleep(1)
-    
+        while pygame.mixer.music.get_busy():
+            time.sleep(1)
+            
+    def danger(self):
+        self.result = True
+        global danger_detected, danger_delay
+        if not danger_detected and not danger_delay:
+            danger_detected=True
+            threading.Thread(target=self.play_music, args=(mp3_file,)).start()
+            
     def transfer_two_points(self, data):
         X_values = data[:, 0]
         Y_values = data[:, 1]
@@ -114,15 +150,10 @@ class ObjectDetection:
         return min_X, min_Y, max_X, max_Y
     
 
-
     ### 임소영 알고리즘 함수
     def yimsoyoung(self, list_ysy, class_ids, label, list_box, value, value2, cv2_list):
-        
         upper_coordinates, lower_coordinates, u_x1, u_y1, u_x2, u_y2, l_x1, l_y1, l_x2, l_y2 = list_ysy
         x1, x2, y1, y2 = list_box
-        
-        # print('yimsoyoung is working')
-
         f_x1, f_x2, f_y1, f_y2 = -1, -1, -1, -1
         
         # Forklift에 사람이 있는 경우 알림 표시
@@ -134,36 +165,42 @@ class ObjectDetection:
                 forklift_box = (x1, x2, y1, y2) 
 
             if label == 'Person' : 
-                x2 = (x1 + x2) / 2
-                y2 = (y1 + y2) / 2
+                X_MUL = 1.0
+                Y_MUL = 1.0
+                x2 = ((x1 + x2) / 2) * X_MUL
+                y2 = ((y1 + y2) / 2) * Y_MUL
                 x2 , y2 = int(x2), int(y2)
                 
                 if forklift_box : 
                     f_x1, f_x2, f_y1, f_y2 = forklift_box  # 수정된 부분
+                    f_x1, f_x2 = f_x1 * X_MUL , f_x2 * X_MUL
+                    f_y1, f_y2 = f_y1 * Y_MUL, f_y2 * Y_MUL
                     if (f_x1-50 <= x2 <= f_x2+50) and (f_y1-50 <= y2 <= f_y2+50):
-                        cv2_list.append(('Person on FORKLIFT', (10,700), self.font, 1, self.b_c))
-                        # cv2.putText(frame_detect, 'Person on FORKLIFT', (10, 700), self.font, 1, self.b_c, 1)
+                        cv2_list.append((0, 'Person on FORKLIFT', (600,350), self.font, 1, self.b_c, 3))
                         print('Person on FORKLIFT')
+                        if not mute : self.danger()
 
                 
         # Rack에 사람이 있는 경우 알림 표시
         if label == 'Person':
-            x2 = (x1 + x2) / 2
-            y2 = (y1 + y2) / 2
+            X_MUL = 1.0 # 1.5
+            Y_MUL = 1.0 # 0.5
+            x2 = ((x1 + x2) / 2) * X_MUL
+            y2 = ((y1 + y2) / 2) * Y_MUL
             x2 , y2 = int(x2), int(y2)
             txt_pt = (x1, y2 + 30)
             if upper_coordinates and (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
-                cv2_list.append(('Person on UPPER RACK', txt_pt, self.font, 1, self.b_c))
-                # cv2.putText(frame_detect, 'Person on UPPER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
+                cv2_list.append((0, 'Person on UPPER RACK', txt_pt, self.font, 1, self.b_c, 3))
                 print('Person on upper rack')
+                if not mute : self.danger()
             if lower_coordinates and (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
-                cv2_list.append(('Person on LOWER RACK', txt_pt, self.font, 1, self.b_c))
-                # cv2.putText(frame_detect, 'Person on LOWER RACK', (x1, y2 + 30), self.font, 1, self.b_c, 1)
+                cv2_list.append((0, 'Person on LOWER RACK', txt_pt, self.font, 1, self.b_c, 3))
                 print('Person on lower rack')
+                if not mute : self.danger()
 
-
+        # Forklift가 Rack 공간에 작업 중인 경우 알림 표시 
         elif (label == 'Forklift(H)') or (label == 'Forklift(D)'):
-            if upper_coordinates and (x1 + x2) / 2 > (u_x1 + u_x2) / 2:
+            if upper_coordinates and ((x1 + x2) / 2 > (u_x1 + u_x2) / 2):
                 # left
                 d_1 = (u_x2 - x1) ** 2 + (u_y1 - y1) ** 2
                 d_1 = np.sqrt(d_1)
@@ -173,7 +210,7 @@ class ObjectDetection:
 
                 value = (d_1 + d_2) / 2
 
-            elif upper_coordinates and (x1 + x2) / 2 < (u_x1 + u_x2) / 2:
+            elif upper_coordinates and ((x1 + x2) / 2 < (u_x1 + u_x2) / 2):
                 # right
                 d_1 = (u_x1 - x2) ** 2 + (u_y1 - y1) ** 2
                 d_1 = np.sqrt(d_1)
@@ -202,48 +239,68 @@ class ObjectDetection:
                 d_4 = np.sqrt(d_4)
 
                 value2 = (d_3 + d_4) / 2
+            print(f"value : {value}   value2 : {value2}")
 
-            if (value < 300) or (value2 < 300):
+            if (value < 500) or (value2 < 500):
                 if value < value2:
-                    cv2_list.append(('Folklift on UPPER RACK', (10,50), self.font, 1, self.b_c))
+                    cv2_list.append((0, 'Folklift on UPPER RACK', (300,400), self.font, 1, self.y_c, 3))
                 else:
-                    cv2_list.append(('Folklift on LOWER RACK', (10,50), self.font, 1, self.b_c))
-                
+                    cv2_list.append((0, 'Folklift on LOWER RACK', (300,400), self.font, 1, self.y_c, 3))
         else:
             self.count = 1
-        
-        # cv2_list.append('END')
-        return 
 
+    def euclidean_dist(self, x1, y1, x2, y2):
+        return ((x1-x2)**2 + (y1-y2)**2)**0.5
     
-    
-    def extend_line(self, img, forklift_deque, color, thickness):
+    def get_first_last_values(self, forklift_deque):
         """
-        forklift 의 최근 n개 프레임 정보를 사용해서 진행 방향을 구하고, 사진 상에서의 양 끝점을 구하는 함수
-        n개 프레임 정보가 저장된 deque 내의 가장 첫 값과 끝 값을 사용해서 두 점을 잇는 직선을 구한다.
-        - forklift_deque : forklift의 바운딩 박스 좌표를 저장하는 deque 객체 
+        deque에서 None 값을 제외한 값들 중에서 가장 첫 값과 마지막 값을 구하는 함수
+        - forklift_deque : 지게차 바운딩 박스의 좌표값이 저장된 deque 객체
         """
-        
         # deque 내의 값이 충분하지 않을 경우 종료
         deque_len = len(forklift_deque)
         if deque_len <= 1:
             return
         
-        # 대상 사진의 높이, 너비
-        height, width, _ = img.shape
+        front, back = 0, -1
+        while True:
+            value1 = forklift_deque[front]
+            if value1 != None:
+                break
+            else:
+                front += 1
         
-        x1, y1, _, _ = forklift_deque[0]
-        x2, y2, _, _ = forklift_deque[-1]
+        while True:
+            value2 = forklift_deque[back]
+            if value2 != None:
+                break
+            else:
+                back -= 1
+        
+        # value1, value2 가 동일할 경우(deque 내에서 None이 아닌 값이 단 한 개) None 반환
+        if front == back + deque_len:
+            return
+        
+        return value1, value2
+    
+    
+    def extend_line(self, height, width, x1, y1, x2, y2):
+        """
+        forklift 의 최근 n개 프레임 정보를 사용해서 진행 방향을 구하고, 사진 상에서의 양 끝점을 구하는 함수
+        n개 프레임 정보가 저장된 deque 내의 가장 첫 값과 끝 값을 사용해서 두 점을 잇는 직선의 양 끝 점을 구하여 반환한다.
+        - height, width : 대상 이미지의 높이, 너비
+        - x1, y1, x2, y2 : 직선을 그릴 때 사용할 두 점의 x, y 값
+        """
         
         dx = x2 - x1
         dy = y2 - y1
-        grad = dy / dx
         
         if dx == 0: # 세로선
-            cv2.line(img, (x1, 0), (x1, height), color, thickness, cv2.LINE_AA)
+            return (int(x1), 0), (int(x1), height)
         elif dy == 0:   # 가로선
-            cv2.line(img, (0, y1), (width, y1), color, thickness, cv2.LINE_AA)
+            return (0, int(y1)), (width, int(y1))
         else:
+            grad = dy / dx
             points = []
             
             # left border (x=0)
@@ -267,24 +324,14 @@ class ObjectDetection:
                 points.append((int(x), height))
             
             if len(points) == 2:
-                cv2.line(img, points[0], points[1], color, thickness, cv2.LINE_AA)
+                return points[0], points[1]
 
 
-    def calculate_route_coefs(self, forklift_deque):
+    def calculate_route_coefs(self, x1, y1, x2, y2):
         """
         forklift 의 최근 n개 프레임 정보를 사용해서 진행 방향의 음함수 계수를 구하는 함수
-        deque 내의 가장 첫 값과 끝 값을 사용해서 두 점을 잇는 직선을 구한다. (음함수 식 ax+by+c=0)
-        - forklift_deque : forklift의 바운딩 박스 좌표를 저장하는 deque 객체
+        (x1, y1), (x2, y2) 값을 받아서 두 점을 잇는 직선을 구한다. (음함수 식 ax+by+c=0)
         """
-        
-        # deque 내의 값이 충분하지 않을 경우 종료
-        deque_len = len(forklift_deque)
-        if deque_len <= 1:
-            return
-        
-        x1, y1, _, _ = forklift_deque[0]
-        x2, y2, _, _ = forklift_deque[-1]
-        
         dx = x2 - x1
         dy = y2 - y1
         grad = dy / dx
@@ -295,7 +342,8 @@ class ObjectDetection:
         elif dy == 0:
             a, b, c = 0, 1, -y1
         else:
-            a, b, c = grad, -1, y1 - (a * x1)
+            a = grad
+            b, c = -1, y1 - (a * x1)
         
         return a, b, c
 
@@ -303,27 +351,51 @@ class ObjectDetection:
     def detect_danger_between_forklift_and_person(self, forklift_deque, person_bbox):
         """ [여러 사람을 대상으로 작동할 수 있도록 수정 필요]
         forklift의 예상 진행 경로를 계산하고, 어떤 한 사람이 그 경로로부터 충분히 떨어져 있는지 판단하는 함수
+        - 지게차의 종류 : (V), (D), (H)
         - forklift_deque : forklift의 바운딩 박스 좌표 여러 개를 저장하는 deque 객체
         - person_bbox : person의 바운딩 박스 좌표를 저장하는 리스트 객체
         """
         
-        coefs = self.calculate_route_coefs(forklift_deque)
-        if not coefs: 
-            return
+        # deque에서 두 프레임의 좌표값 추출
+        values = self.get_first_last_values(forklift_deque)
+        if not values:
+            return False
+        else:
+            value1, value2 = values
+        x1, y1, w1, h1, _, cls1 = value1  # (xywh, conf, cls)
+        x2, y2, w2, h2, _, cls2 = value2
         
+        # x1, y1, _, _ = forklift_deque[0]
+        # x2, y2, _, _ = forklift_deque[-1]
+        
+        coefs = self.calculate_route_coefs(x1, y1, x2, y2)
         a, b, c = coefs
-        x1, y1, w1, h1 = person_bbox
-        dist = abs(a * x1 + b * y1 + c) / (a**2 + b**2)**0.5
         
-        _, _, w2, h2 = forklift_deque[-1]
-        forklift_len = (w2**2 + h2**2)**0.5
-        person_len = (w1**2 + h2**2)**0.5
+        p_x1, p_y1, p_w1, p_h1 = person_bbox
+        dist = abs(a * p_x1 + b * p_y1 + c) / (a**2 + b**2)**0.5
+
+        # forklift_len = (w2**2 + h2**2)**0.5
+        # person_len = (w1**2 + h2**2)**0.5
         
-        danger_flag = True if (forklift_len + person_len) * 0.5 >= dist else False
-        return danger_flag
+        tan_value = abs(a)  # 지게차 진행방향과 x축이 이루는 예각삼각형의 tangent 값
+        cos_value = 1 / (1 + tan_value**2)**0.5
+        sin_value = tan_value / (1 + tan_value**2)**0.5
+        
+        forklift_len = w2 * sin_value + h2 * cos_value      # 지게차의 진행방향과 수직인 직선에 지게차의 바운딩 박스를 정사영한 길이
+        person_len = p_w1 * sin_value + p_h1 * cos_value    # 지게차의 진행방향과 수직인 직선에 사람의 바운딩 박스를 정사영한 길이
+        
+        ### 지게차의 방향에 따라 forklift_len의 길이에 가중치 적용 (일반적으로 H일 때 보다 V, D일 때 더 크게 잡히기 때문)
+        weight_type = {1: 0.8, 3: 0.85, 4: 1.0}  # (V), (H) => 0.8 ~ 0.9
+        weight = weight_type[int(cls2)]
+        forklift_len = forklift_len * weight
+        
+        danger_cond1 = True if (forklift_len + person_len) * 0.5 >= dist else False
+        
+        # danger_flag
+        return danger_cond1
 
 
-    def detect_danger(self, cv2_texts, results, forklift_frames, forklift_valid):
+    def detect_danger(self, results, forklift_frames, forklift_valid, forklift_moves):
         """
         사람-지게차 간 위험상황 감지 함수
         - cv2_texts : 위험상황 관련 cv2 표시할 텍스트 사항 모음 리스트
@@ -331,105 +403,185 @@ class ObjectDetection:
         - forklift_frames : forklift의 바운딩 박스 좌표를 저장하는 deque 객체 
         """
         
-        if 2 in results[0].boxes.cls:
-            forklift_valid = True
-            idx = results[0].boxes.cls.tolist().index(2)
-            forklift_frames.append(results[0].boxes.xywh.tolist()[idx])
-        else:
-            forklift_valid = False
+        detected_labels = results.pred[0][:, -1].int().tolist() # ⭐
         
-        # 사람이 있는지 확인
-        if forklift_valid and (0 in results[0].boxes.cls):
-            person_valid = True
-            idx = results[0].boxes.cls.tolist().index(0)
-            person_frame = results[0].boxes.xywh.tolist()[idx]
-            # 지게차 예상 진행 루트와의 직선 거리를 계산해서 위험여부를 알려줌
-            if self.detect_danger_between_forklift_and_person(forklift_frames, person_frame):
-                # [위험상황 발생 시각 저장 기능] => 구현 예정
-                cv2_texts.append(('collision risk detected', (10, 960), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255)))
-                # cv2.putText(predict_frame, 'collision risk occurred', (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
-                print('collision risk detected')
+        # [2] 지게차가 있는지 확인 (Trolly:2는 제외)
+        if set(detected_labels) & set([1, 3, 4]):
+            # print('[2-1] 실행')
+            indices = [i for i, x in enumerate(detected_labels) if x in [1, 3, 4]]
+            forklift_frame = results.xywh[0][indices[0]].clone()  # ⭐
+            x_, y_, w_, h_, _, cls_ = forklift_frame
+            
+            forklift_frames.append(forklift_frame)  # ⭐
+            
+            # 지게차가 움직이는 거리 계산, 움직이는지 여부 파악
+            print(f'forklift_valid 값 : {forklift_valid}')
+            print(f'forklift_frames 길이 : {len(forklift_frames)}')
+            if (len(forklift_frames)==self.DEQUE_MAXLEN) and (forklift_frames.count(None) / len(forklift_frames) <= 0.5): # 😎
+                # print('[2-2] 실행')
+                forklift_valid = True
+                
+                first_value, last_value = self.get_first_last_values(forklift_frames)
+                x1, y1, _, _, _, _ = first_value
+                x2, y2, _, _, _, _ = last_value
+                dist = self.euclidean_dist(x1, y1, x2, y2)   # 변위 계산
+                forklift_moves = True if dist > self.MOVE_OR_NOT else False  # 변위가 기준치보다 크면 움직인다고 판단
+        else:
+            forklift_frames.append(None)
+            if (len(forklift_frames)==self.DEQUE_MAXLEN) and (forklift_frames.count(None) / len(forklift_frames) > 0.5): # 😎
+                # 트래킹 중인 지게차가 없어졌다면 데크 초기화
+                if forklift_valid:
+                    forklift_frames.clear()
+                    forklift_valid = False
+        
+        # [3] 사람이 있는지 확인 (지게차가 있고 움직일 때)
+        if forklift_valid and forklift_moves and (0 in detected_labels):
+            # print('[3-1] 실행')
+            indices = [i for i, x in enumerate(detected_labels) if x == 0]
+            person_frame = results.xywh[0][indices[0]][:-2].clone() # ⭐
+            person_frame[1] += (person_frame[3] / 4)    # 사람 바운딩 박스 조정(발 부분으로 한정)
+            person_frame[3] = (person_frame[3] / 2)
+            self.person_frames.append(person_frame)
+            none_count = self.person_frames.count(None)
+            if len(self.person_frames)==self.DEQUE_MAXLEN and none_count / len(self.person_frames) < 0.5:
+                # print('[3-2] 실행')
+                person_valid = True
+            else:
+                person_valid = False
         else:
             person_valid = False
         
-        # 예상 진행 루트 표시 (직선)
-        if len(forklift_frames) >= 2:
-            x1, y1, _, _ = forklift_frames[0]
-            x2, y2, _, _ = forklift_frames[-1]
-            # self.extend_line(results[0], forklift_frames, (0, 255, 0), 3)
-            # cv2.line(annotated_frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 0, 255), 10)
-            dist = ((x1-x2)**2 + (y1-y2)**2)**0.5
-            cv2_texts.append((f'Dist : {dist:.3f}', (50, 990), cv2.FONT_HERSHEY_TRIPLEX, 1.2, (0, 255, 0)))
-            # cv2.putText(predict_frame, f'Dist : {dist}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0))
+        # [4] 지게차 예상 진행 루트와의 직선 거리를 계산해서 위험여부를 알려줌
+        if person_valid and self.detect_danger_between_forklift_and_person(forklift_frames, person_frame):
+            # print('[4] 실행')
+            self.cv2_labels.append((0, 'COLLISION RISK OCCURRED', (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)) # 😎
+            # self.cv2_labels.append((0, f'{person_frame}', (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 3)) # 테스트용
+            print('COLLISION RISK OCCURRED') # 테스트용
+            if not mute : self.danger() # 😎 [위험상황 발생 시각 저장 기능]
         
-        return forklift_valid
+        # [5] 지게차 예상 진행 루트(직선) 표시
+        if forklift_valid and forklift_moves:
+            # print('[5-1] 실행')
+            first_value, last_value = self.get_first_last_values(forklift_frames)
+            x1, y1, _, _, _, _ = first_value
+            x2, y2, _, _, _, _ = last_value
+            
+            # 대상 사진의 높이, 너비
+            height, width, _ = results.ims[0].shape
+            
+            if forklift_moves:
+                # print('[5-2] 실행')
+                point1, point2 = self.extend_line(height, width, x1, y1, x2, y2)
+                self.cv2_labels.append((1, point1, point2, (0, 255, 0), 3))
+                dist = self.euclidean_dist(x1, y1, x2, y2)   # 빼도 되나?
+                self.cv2_labels.append((0, f'Dist : {dist:.3f}', (1030, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3))
+        
+        return forklift_valid, forklift_moves
     
-    def apply_model(self,frame, upper_coordinates=None, lower_coordinates=None):
+    def apply_model(self, frame, upper_coordinates=None, lower_coordinates=None):
         ### -------------------------------------------------------------------------
         ### 임소영 알고리즘 
         ### -------------------------------------------------------------------------
+        self.cv2_labels = []    # cv2_labels 초기화 ⭐
+        
+        # self.current_frame_pos += 1     # 동영상 프레임 카운트
+        # if self.current_frame_pos % self.frame_interval == 0 :
+        #     return frame, self.result
+        
         if upper_coordinates is None and lower_coordinates is None:
-            results = self.model(frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # ⭐
+            results = self.model(frame) # ⭐
         else:
             if upper_coordinates:
                 u_x1, u_y1, u_x2, u_y2 = self.transfer_two_points(np.array(upper_coordinates, dtype=np.int32))
-                frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.g_c, self.thick)
+                # frame = cv2.rectangle(frame, (u_x1, u_y1), (u_x2, u_y2), self.b_c, self.thick)
                 frame = cv2.putText(frame, 'upper_rack', (u_x1, u_y1 - 10), self.font, 1, self.g_c, self.thick)
+            else :
+                u_x1, u_y1, u_x2, u_y2 = 0, 0, 0, 0
 
             if lower_coordinates:
                 l_x1, l_y1, l_x2, l_y2 = self.transfer_two_points(np.array(lower_coordinates, dtype=np.int32))
-                frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.g_c, self.thick)
+                # frame = cv2.rectangle(frame, (l_x1, l_y1), (l_x2, l_y2), self.b_c, self.thick)
                 frame = cv2.putText(frame, 'lower_rack', (l_x1, l_y1 - 10), self.font, 1, self.g_c, self.thick)
+            else : 
+                l_x1, l_y1, l_x2, l_y2 = 0, 0, 0, 0
             
-            results = self.model.predict(frame, conf=0.4)
-            cv2_list = []
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # ⭐
+            results = self.model(frame) # ⭐
             
-            #results[0].plot()
+            print('='*50)
+            print(f"results \n{results}")
 
-            for result in results:
-                boxes = result.boxes.xyxy.cpu().numpy()
-                class_ids = result.boxes.cls.cpu().numpy().astype(int)
-                value = np.inf
-                value2 = np.inf
+            # boxes = results.xyxy[0].cpu().numpy()   # 바운딩 박스 좌표 (x1, y1, x2, y2, confidence, class)
+            # class_ids = results.xyxy[0][:, 5].cpu().numpy().astype(int)  # 클래스 아이디
+            # print('='*50)
+            # print(f"boxes {boxes}   class_ids {class_ids}")
+            # print(f"boxes {type(boxes)}   class_ids {type(class_ids)}")
+            # print(f"boxes {len(boxes)}   class_ids {len(class_ids)}")
 
-                for box, class_id in zip(boxes, class_ids):
-                    x1, y1, x2, y2 = map(int, box)
-
-                    label = self.model.names[class_id]
-                    # print(f"좌표: ({x1}, {y1}) - ({x2}, {y2})  라벨: {label}")
-                    
-                    list_ysy = [upper_coordinates, lower_coordinates, u_x1, u_y1, u_x2, u_y2, l_x1, l_y1, l_x2, l_y2]
-                    list_box = [x1, y1, x2, y2]
-                    ### 임소영
-                    self.yimsoyoung(list_ysy, class_ids, label, list_box, value, value2, cv2_list)
+            # 예측 결과에서 바운딩 박스와 클래스 아이디 추출
+            results_data = results.xyxy[0]
+            value = np.inf
+            value2 = np.inf
             
-            self.result = True
-            global danger_detected, danger_delay
-            if not danger_detected and not danger_delay:
-                danger_detected=True
-                self.play_music(mp3_file)
-            ### -------------------------------------------------------------------------
-            ### 변주영 알고리즘 
-            ### -------------------------------------------------------------------------
-            if not self.forklift_valid:
-                self.forklift_frames.clear()    
-            self.current_frame_pos += 1    
-            if self.current_frame_pos % self.frame_interval == 0 :
+            # 클래스 ID와 라벨을 리스트에 저장
+            class_ids = []
+            labels = []
+            bboxes = []
+
+            for *box, conf, cls_ in results_data:
+                x1, y1, x2, y2 = map(int, box)  # 바운딩 박스 좌표
+                class_id = int(cls_)             # 클래스 ID 
+                classes = ['Person', 'Trolly', 'Forklift(H)', 'Forklift(D)', 'Forklift(V)']
+                label = classes[class_id]
+
+                class_ids.append(class_id)
+                labels.append(label)
+                bboxes.append([x1, y1, x2, y2])
+
+                list_ysy = [upper_coordinates, lower_coordinates, u_x1, u_y1, u_x2, u_y2, l_x1, l_y1, l_x2, l_y2]
+                list_box = [x1, y1, x2, y2]
                 
-                self.forklift_valid = self.detect_danger(self.cv2_labels, results, self.forklift_frames, self.forklift_valid)
-            
-            
-            ### -------------------------------------------------------------------------
-            ### 변주영 결과 + 임소영 결과 => frame 위에 opencv로 표시 
-            ### -------------------------------------------------------------------------
-            if len(cv2_list) > 0 :
-                for k in range(0, len(cv2_list)):
-                    cv2.putText(frame, cv2_list[k][0], cv2_list[k][1], cv2_list[k][2], cv2_list[k][3], cv2_list[k][4])
+                # 바운딩 박스를 그린다
+                # self.cv2_labels.append((2, (x1, y1), (x2, y2), (255, 0, 0), 2))
+                # self.cv2_labels.append((0, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2))        
+                
+                ### 임소영
+                self.yimsoyoung(list_ysy, class_ids, label, list_box, value, value2, self.cv2_labels)
+        
+        ## -------------------------------------------------------------------------
+        ## 변주영 알고리즘 
+        ## -------------------------------------------------------------------------
+        if (len(self.forklift_frames)==self.DEQUE_MAXLEN) and (not self.forklift_valid):
+            self.forklift_frames.clear()    
+        
+        # self.current_frame_pos += 1     # 동영상 프레임 카운트
+        # if self.current_frame_pos % self.frame_interval == 0 :
+        self.forklift_valid, self.forklift_moves = self.detect_danger(results, self.forklift_frames, self.forklift_valid, self.forklift_moves)
+        
+        
+        ### -------------------------------------------------------------------------
+        ### 변주영 결과 + 임소영 결과 => frame 위에 opencv로 표시 
+        ### -------------------------------------------------------------------------
+        annotated_frames = results.render() # ⭐
+        annotated_frame = cv2.cvtColor(annotated_frames[0], cv2.COLOR_BGR2RGB)  # ⭐
+        
+        if len(self.cv2_labels) > 0 :
+            for k in range(0, len(self.cv2_labels)):
+                cv2_type = self.cv2_labels[k][0]
+                if cv2_type == 0:
+                    # 프레임, 텍스트 내용, 넣을 위치, 폰트 종류, 폰트 크기, 폰트 색, 폰트 굵기
+                    cv2.putText(annotated_frame, self.cv2_labels[k][1], self.cv2_labels[k][2], self.cv2_labels[k][3], self.cv2_labels[k][4], self.cv2_labels[k][5], self.cv2_labels[k][6])
+                elif cv2_type == 1:
+                    # 프레임, 좌표1, 좌표2, 색상, 굵기
+                    cv2.line(annotated_frame, self.cv2_labels[k][1], self.cv2_labels[k][2], self.cv2_labels[k][3], self.cv2_labels[k][4])
+                elif cv2_type == 2:
+                    cv2.rectangle(annotated_frame, self.cv2_labels[k][1], self.cv2_labels[k][2], self.cv2_labels[k][3], self.cv2_labels[k][4])
 
-            cv2.putText(frame, 'Object Detection With YOLOv8', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
+        # cv2.putText(frame, 'Object Detection With YOLOv8', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
 
-        return results[0].plot(), self.result
- 
+        return annotated_frame, self.result    # ⭐
+
 
 class CameraProcessor:
     def __init__(self, camera_index=0):
@@ -446,6 +598,7 @@ class CameraProcessor:
 
 
     def get_frame(self):
+        ret, self.frame = self.cap.read()
         ret, self.frame = self.cap.read()
         return self.frame if ret else None
 
@@ -526,13 +679,17 @@ class SelectAreaDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle('Select Area')
         self.video_widget = VideoWidget()
-        self.setWindowState(Qt.WindowMaximized)
+        
+        #size = self.parent().size()
+        #self.setWindowState(Qt.WindowMaximized)
+        #self.setWindowState(on_air_detection.size())
+        self.resize(1189 + 50, 792 + 50)
         self.coordinates = None
         
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.video_widget)
         self.setLayout(self.layout)
-
+    
         self.cap = cv2.VideoCapture(video_path)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.next_frame)
@@ -570,6 +727,7 @@ class WindowClass(QMainWindow, form_class):
         self.graphicsView.setScene(self.scene)
         self.scene2 = QGraphicsScene()
         self.on_air_camera.setScene(self.scene2)
+        self.size = self.on_air_camera.size()
 
         self.video_processor = VideoProcessor()
         self.camera_processor = CameraProcessor(camera_index = test_filepath) # on_dialog_finished 추가 작업 필요
@@ -599,7 +757,6 @@ class WindowClass(QMainWindow, form_class):
         self.btn_forward.clicked.connect(self.forward)
         self.btn_prev.clicked.connect(self.backward)
         self.Video_bar.valueChanged.connect(self.slider_moved)
-        self.progressBar.setValue(0)
         self.rack_btn_1.clicked.connect(lambda: self.open_select_area_dialog(1))
         self.rack_btn_2.clicked.connect(lambda: self.open_select_area_dialog(2))
         self.rack_btn_3.clicked.connect(lambda: self.draw_rectangle(1))
@@ -635,7 +792,7 @@ class WindowClass(QMainWindow, form_class):
         self.danger_timer = QTimer()
         self.danger_timer.timeout.connect(self.toggle_red_overlay)
         self.danger_timer.start(500)
-        QTimer.singleShot(3900, self.stop_timer)
+        QTimer.singleShot(3100, self.stop_timer)
 
     def stop_timer(self):
         self.danger_timer.stop()
@@ -706,6 +863,13 @@ class WindowClass(QMainWindow, form_class):
         
             
     def load_video_file(self):
+        self.btn_pause.hide()
+        self.Current.hide()
+        self.Total_length.hide()
+        self.Video_bar.hide()
+        self.btn_forward.hide()
+        self.btn_prev.hide()
+        self.btn_stop_start.hide()
         fname = QFileDialog.getOpenFileName(self, 'Open file', './', 'Video files (*.mp4 *.avi)')
         if fname[0]:
             duration = self.video_processor.load_video(fname[0])
@@ -749,7 +913,7 @@ class WindowClass(QMainWindow, form_class):
     def process_video(self):
         frame = self.video_processor.get_frame()
         if self.video_processor.is_playing: # 동영상 모델 적용 상시
-            frame = self.camera_processor.apply_model(frame, ort_session2)
+            frame = self.video_processor.apply_model(frame, ort_session2)
             self.show_img(self.graphicsView, self.scene, frame)
             self.update_current_time()
 
@@ -779,7 +943,7 @@ class WindowClass(QMainWindow, form_class):
                         self.danger_run()
                         global danger_delay
                         danger_delay = True
-                        threading.Timer(10, self.reset_delay_term).start()
+                        threading.Timer(7, self.reset_delay_term).start()
                      
             if self.rectangle1_flag:
                 points_int = np.array(self.points1, dtype=np.int32)
@@ -823,7 +987,7 @@ class WindowClass(QMainWindow, form_class):
 
     def toggle_play_pause(self):
         self.video_processor.is_playing = not self.video_processor.is_playing
-        icon = QIcon('Video/icon/play.png' if not self.video_processor.is_playing else 'Video/icon/stop-button.png')
+        icon = QIcon('Program/video_icon/play.png' if not self.video_processor.is_playing else 'Program/video_icon/pause2.png') #
         self.btn_stop_start.setIcon(icon)
 
     def forward(self):
@@ -850,7 +1014,7 @@ class WindowClass(QMainWindow, form_class):
             event.ignore()
 
     def play_saved_frames(self):
-        current_time = datetime.now()
+        current_time = datetime.datetime.now()
         timestamp = current_time.strftime("%Y%m%d%H%M%S")
         output_path = f'{timestamp}.mp4'
         frame_delay = 1 / 30
@@ -896,10 +1060,13 @@ class WindowClass(QMainWindow, form_class):
         return time
 
     def muting(self) :
+        global mute
         if self.checkBox2.isChecked() :
             self.checkBox2.setText("On")
+            mute=True
         else :
             self.checkBox2.setText("Off")
+            mute=False
 
     def set_save_frame_sec(self) :
         select = self.comboBox.currentText()
@@ -915,5 +1082,6 @@ class WindowClass(QMainWindow, form_class):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWindow = WindowClass()
+    apply_stylesheet(app, theme="dark_teal.xml", css_file='Program/video_icon/custom.css')
     myWindow.show()
     sys.exit(app.exec_())
