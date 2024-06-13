@@ -33,14 +33,11 @@ from qt_material import apply_stylesheet
 
 
 # 명노아=================================================================
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\헬멧_위험구역_진입.mp4"
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION2\Program\Video\5번카메라_루프렉사이_진입.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 ort_session = YOLO('Program/Model/best.onnx')
 ort_session2 = YOLO('Program/Model/best.onnx')
-#ort_session =  attempt_load(r'Program/Model/best.pt',map_location=torch.device('cpu'))
-#ort_session2 =  attempt_load('Program/Model/best.pt',map_location=torch.device('cpu'))
-
 danger_detected = False
 danger_delay = False
 mute = False
@@ -396,6 +393,7 @@ class ObjectDetection:
     
     def apply_model(self,frame, upper_coordinates=None, lower_coordinates=None):
         ### -------------------------------------------------------------------------
+        
         ### 임소영 알고리즘 
         ### -------------------------------------------------------------------------
         if upper_coordinates is None and lower_coordinates is None:
@@ -735,6 +733,13 @@ class WindowClass(QMainWindow, form_class):
         
             
     def load_video_file(self):
+        self.btn_pause.hide()
+        self.Current.hide()
+        self.Total_length.hide()
+        self.Video_bar.hide()
+        self.btn_forward.hide()
+        self.btn_prev.hide()
+        self.btn_stop_start.hide()
         fname = QFileDialog.getOpenFileName(self, 'Open file', './', 'Video files (*.mp4 *.avi)')
         if fname[0]:
             duration = self.video_processor.load_video(fname[0])
@@ -852,7 +857,7 @@ class WindowClass(QMainWindow, form_class):
 
     def toggle_play_pause(self):
         self.video_processor.is_playing = not self.video_processor.is_playing
-        icon = QIcon('Video/icon/play.png' if not self.video_processor.is_playing else 'Video/icon/stop-button.png')
+        icon = QIcon('Program/video_icon/play.png' if not self.video_processor.is_playing else 'Program/video_icon/pause2.png') #
         self.btn_stop_start.setIcon(icon)
 
     def forward(self):
@@ -947,6 +952,6 @@ class WindowClass(QMainWindow, form_class):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWindow = WindowClass()
-    apply_stylesheet(app, theme="dark_red.xml")
+    apply_stylesheet(app, theme="dark_teal.xml", css_file='Program/video_icon/custom.css')
     myWindow.show()
     sys.exit(app.exec_())
