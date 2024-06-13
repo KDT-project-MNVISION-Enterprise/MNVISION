@@ -95,6 +95,10 @@ class VideoProcessor:
     def release(self):
         if self.cap is not None:
             self.cap.release()
+            
+    def apply_model(self, frame, model):
+        results = model(frame)
+        return results.render()[0]
 
             
 class ObjectDetection:

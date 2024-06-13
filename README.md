@@ -37,7 +37,7 @@ KDT 5기 혜모팀의 기업 프로젝트입니다.
 
 - 운영체제 : Windows 11
 - 개발환경 : Visual Studio Code
-- 프레임워크 : PyTorch, Flask
+- 프레임워크 : PyTorch
 - 언어 : Python3.8
 - 라벨링 프로그램 : LabelImg
 - 패키지 : Ultralytics, PyQt5, Opencv, numpy, Pygame, csv, threading, time, os, re, datetime, subprocess, collections
@@ -48,7 +48,6 @@ KDT 5기 혜모팀의 기업 프로젝트입니다.
 ![Python](https://img.shields.io/badge/Python-3776AB.svg?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![Tensorflow](https://img.shields.io/badge/Tensorflow-1877F2.svg?style=for-the-badge&logo=tensorflow&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white)
-![Flask](https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white)
 ![Qt](https://img.shields.io/badge/Qt-%23217346.svg?style=for-the-badge&logo=Qt&logoColor=white)
 ![OpenCV](https://img.shields.io/badge/opencv-%23white.svg?style=for-the-badge&logo=opencv&logoColor=white)
 ![Threads](https://img.shields.io/badge/Threads-000000?style=for-the-badge&logo=Threads&logoColor=white)
