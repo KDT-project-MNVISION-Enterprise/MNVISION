@@ -147,9 +147,15 @@ def detect_danger_between_forklift_and_person(forklift_deque, person_bbox):
     weight = weight_type[int(cls2)]
     forklift_len = forklift_len * weight
     
-    danger_flag = True if (forklift_len + person_len) * 0.5 >= dist else False
+    danger_cond1 = True if (forklift_len + person_len) * 0.5 >= dist else False
     
-    return danger_flag
+    ### 사람으로부터 가까워지는지 체크하는 코드
+    dist1 = euclidean_dist(x1, y1, p_x1, p_y1)
+    dist2 = euclidean_dist(x2, y2, p_x1, p_y1)
+    danger_cond2 = True if (dist1 > dist2) else False
+    
+    # danger_flag
+    return danger_cond1 & danger_cond2
 
 ## --------------------------------------------------------------------------------------
 ## 메인 코드
