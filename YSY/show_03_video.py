@@ -15,7 +15,7 @@ l_x1, l_y1, l_x2, l_y2 = 897, 300, 1232, 550
 
 # 저장된 모델 불러오기
 num = 7
-model = YOLO("./runs/detect/train7/weights/best.pt")
+model = YOLO("C:/Users/kdp/PycharmProjects/My_Project/TEST/try_03/240531_best.pt")
 
 
 # 비디오 파일 로드
@@ -24,7 +24,7 @@ video = cv2.VideoCapture(file)
 
 
 # 프레임 간격 설정 (예: 매 10번째 프레임 읽기)
-frame_interval = 5
+frame_interval = 1
 
 # opencv 관련 설정값
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL
@@ -73,7 +73,7 @@ while True:
         
         # YOLOv8 모델 적용
         # results = model(frame)
-        results = model.predict(frame, conf = 0.7)
+        results = model.predict(frame, conf = 0.5)
 
 
         # Run batched inference on a list of images
@@ -92,7 +92,7 @@ while True:
 
 
         # print('================================ results ===================================')
-        # print(len(results))
+        # print(len(results), type(results))
         # print('==================================== 0 ========================================')
         # print(results[0])
         # print('===============================================================================')
@@ -104,7 +104,11 @@ while True:
             speeds = result.speed
             probs = result.probs
             obb = result.obb
+            print('-'*50)
+            print('boxes', type(boxes), boxes)
+            print('class_ids', type(class_ids), class_ids)
 
+            print('-'*50)
             for box, class_id in zip(boxes, class_ids):
                 x1, y1, x2, y2 = box
                 x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])  # 좌표값을 정수로 변환
@@ -120,65 +124,41 @@ while True:
 
                 # 뮤팅 알림 표시 
                 if label == 'Person' :
-                    # count += 1
-                    # print(f"count : {count}")
+                    count += 1
+                    print(f"count : {count}")
 
-                    # if count > 5 : 
-                    # cv2.rectangle(frame, (x1, y1), (x2, y2), g_c, 2)
-                    # cv2.putText(frame, label, (x1, y1-10), font, 1, (36,255,12), 2)
+                    if count > 5 : 
+                        # cv2.rectangle(frame, (x1, y1), (x2, y2), g_c, 2)
+                        # cv2.putText(frame, label, (x1, y1-10), font, 1, (36,255,12), 2)
 
-                    # upper rack
-                    if (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
-                        cv2.putText(frame, 'Person on UPPER RACK', (x1, y2+30), font, 1, b_c, 1)
-                        print('person on upper rack')
+                        # upper rack
+                        if (u_x1 <= x2 <= u_x2) and (u_y1 <= y2 <= u_y2):
+                            cv2.putText(frame, 'Person on UPPER RACK', (x1, y2+30), font, 1, b_c, 1)
+                            print('person on upper rack')
 
-                    # lower rack  
-                    if (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
-                        cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), font, 1, b_c, 1)
-                        print('person on lower rack')
-
-                    # count = 1          # person용 프레임 카운트 초기화 
-
+                        # lower rack  
+                        if (l_x1 <= x2 <= l_x2) and (l_y1 <= y2 <= l_y2):
+                            cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), font, 1, b_c, 1)
+                            print('person on lower rack')
+                        
                         
                         
                 # 작업중 알림 표시
                 elif (label == 'Forklift(H)') or (label == 'Forklift(D)'): 
-                    if (x1 + x2)/2 > (u_x1 + u_x2)/2 :
-                        # left
-                        d_1 = (u_x2 - x1)**2 + (u_y1 - y1)**2 
-                        d_1 = np.sqrt(d_1)
+                    count = 1          # person용 프레임 카운트 초기화 
+                    rack_count += 1
 
-                        d_2 = (u_x2 - x2)**2 + (u_y2 - y2)**2
-                        d_2 = np.sqrt(d_2)
+                    fork = 250
+                    if rack_count >= 3:
+                        # upper rack
+                        if (u_x1 <= x1 + fork <= u_x2) or (u_x1 <= x2 + fork <= u_x2):
+                            cv2.putText(frame, 'Forklift working on UPPER RACK', (10, 50), font, 1, w_c, 2)
+                            print('Forklift working on UPPER RACK')
 
-                        d_3 = (l_x2 - x1)**2 + (l_y1 - y1)**2 
-                        d_3 = np.sqrt(d_3)
-
-                        d_4 = (l_x2 - x2)**2 + (l_y2 - y2)**2
-                        d_4 = np.sqrt(d_4)
-
-                        value = (d_1 + d_2)/2
-                        value2 = (d_3 + d_4) /2
-                    
-                    elif (x1 + x2)/2 < (u_x1 + u_x2)/2 :
-                        # right
-                        d_1 = (u_x1 - x2)**2  + (u_y1 - y1)**2   
-                        d_1 = np.sqrt(d_1)
-
-                        d_2 = (u_x1 - x2)**2 + (u_y2 - y2)**2
-                        d_2 = np.sqrt(d_2)
-
-                        d_3 = (l_x1 - x2)**2 + (l_y1 - y1)**2 
-                        d_3 = np.sqrt(d_3)
-
-                        d_4 = (l_x1 - x2)**2 + (l_y2 - y2)**2
-                        d_4 = np.sqrt(d_4)
-
-                        value = (d_1 + d_2)/2   
-                        value2 = (d_3 + d_4) /2
-
-                    if (value > 100) or (value2 >100):
-                        cv2.putText(frame, 'Person on LOWER RACK', (x1, y2+30), font, 1, b_c, 1)
+                        # lower rack  
+                        if (l_x1 <= x1 + fork <= l_x2) or (l_x1 <= x2 + fork <= l_x2):
+                            cv2.putText(frame, 'Forklift working on LOWER RACK', (10, 80), font, 1, w_c, 2)
+                            print('Forklift working on LOWER RACK')
 
 
                 else :
