@@ -1,0 +1,10 @@
+names:
+- Person
+- Trolly
+- Forklift(H)
+- Forklift(D)
+- Forklilft(V)
+nc: 5
+test: "F:/\uCC10\uB9C9_data/test"
+train: "F:/\uCC10\uB9C9_data/train"
+val: "F:/\uCC10\uB9C9_data/valid"

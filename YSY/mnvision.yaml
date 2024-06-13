@@ -2,7 +2,9 @@ names:
 - Person
 - Forklift
 - Trolly
-nc: 3
-test: C:/Users/DELL-PC/Desktop/YimSoYoung/labeled/test_lhe
-train: C:/Users/DELL-PC/Desktop/YimSoYoung/labeled/train_ysy
-val: C:/Users/DELL-PC/Desktop/YimSoYoung/labeled/valid_syr
+- Logo
+- Door
+nc: 5
+test: C:/Users/DELL-PC/Desktop/BJY/yolo/v9/datasets/images/val
+train: C:/Users/DELL-PC/Desktop/BJY/yolo/v9/datasets/images/train
+val: C:/Users/DELL-PC/Desktop/BJY/yolo/v9/datasets/images/val
