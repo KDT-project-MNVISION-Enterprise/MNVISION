@@ -1,0 +1,103 @@
+QLabel#Video_info {{
+    font-size : 18px;
+}}
+
+QLabel#Log {{
+    font-size : 18px;
+}}
+
+QLabel#Log_5 {{
+    font-size : 18px;
+}}
+
+QGroupBox#groupBox {{
+    color : #FFFFFF;
+    font-size : 20px;
+    padding : 3px;
+}}
+
+QGroupBox#groupBox_3 {{
+    color : #FFFFFF;
+    font-size : 20px;
+    padding : 3px;
+}}
+
+
+QPushButton#btn_start_detection {{
+    font-size : 18px;
+    font-weight : bold;
+}}
+
+QLabel#label_4 {{
+    font-size : 14px;
+}}
+
+
+QLabel#label_7 {{
+    font-size : 14px;
+}}
+
+QLabel#label_8 {{
+    font-size : 14px;
+}}
+
+QCheckBox#checkBox2{{
+    font-size : 14px;
+}}
+
+
+QComboBox#comboBox {{
+    font-size : 14px;
+    color : rgba(29, 232, 182, 1.0);
+}}
+
+QComboBox#comboBox_2 {{
+    font-size : 14px;
+    color : rgba(29, 232, 182, 1.0);
+}}
+
+QComboBox QAbstractItemView {{
+    color : rgba(29, 232, 182, 1.0);
+    font-size : 14px
+}}
+
+QLabel#Log_4 {{
+    font-size : 18px;
+}}
+
+QLabel#Log_2 {{
+    font-size : 18px;
+}}
+
+QLabel#label{{
+    font-size : 16px;
+}}
+
+QLabel#label_2 {{
+    font-size : 16px;
+}}
+
+QPushButton#rack_btn_1 {{
+    font-size : 14px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color :rgba(29, 232, 182, 1.0);
+}}
+
+QPushButton#rack_btn_2 {{
+    font-size : 14px;
+    background-color: rgba(255, 255, 255, 0.2);   
+    color : rgba(29, 232, 182, 1.0);
+}}
+
+
+QPushButton#rack_btn_3 {{
+    font-size : 14px;
+    background-color: rgba(29, 232, 182, 0.2);
+    color: #FFFFFF;
+}}
+
+QPushButton#rack_btn_4 {{
+    font-size : 14px;
+    background-color: rgba(29, 232, 182, 0.2);
+    color: #FFFFFF;
+}}
