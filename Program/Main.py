@@ -33,7 +33,7 @@ from qt_material import apply_stylesheet
 
 
 # 명노아=================================================================
-test_filepath =r"C:\Users\mathn\Desktop\MNVISION\Program\Video\5번카메라_루프렉사이_진입.mp4"
+test_filepath =r"C:\Users\mathn\Desktop\MNVISION2\Program\Video\5번카메라_루프렉사이_진입.mp4"
 mp3_file = "Program/Audio/alarm_bell.mp3"
 form_class = uic.loadUiType("Program/UI/Video.ui")[0]
 ort_session = YOLO('Program/Model/best.onnx')
