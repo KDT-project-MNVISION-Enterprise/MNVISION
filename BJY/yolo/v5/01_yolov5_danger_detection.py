@@ -9,6 +9,7 @@ from collections import deque   # 고정길이 큐
 def euclidean_dist(x1, y1, x2, y2):
     return ((x1-x2)**2 + (y1-y2)**2)**0.5
 
+
 # 😎
 def get_first_last_values(forklift_deque):
     """
@@ -21,14 +22,14 @@ def get_first_last_values(forklift_deque):
         return
     
     front, back = 0, -1
-    while True:
+    while front < deque_len:
         value1 = forklift_deque[front]
         if value1 != None:
             break
         else:
             front += 1
     
-    while True:
+    while back >= -deque_len:
         value2 = forklift_deque[back]
         if value2 != None:
             break
@@ -84,7 +85,7 @@ def extend_line(height, width, x1, y1, x2, y2):
         if len(points) == 2:
             return points[0], points[1]
 
-# 😎
+
 def calculate_route_coefs(x1, y1, x2, y2):
     """
     forklift 의 최근 n개 프레임 정보를 사용해서 진행 방향의 음함수 계수를 구하는 함수
@@ -105,21 +106,21 @@ def calculate_route_coefs(x1, y1, x2, y2):
     
     return a, b, c
 
+
 # 😎
-def detect_danger_between_forklift_and_person(forklift_deque, person_bbox):
+def detect_danger_between_forklift_and_person(forklift_deque_values, person_bbox):
     """ [여러 사람을 대상으로 작동할 수 있도록 수정 필요]
     forklift의 예상 진행 경로를 계산하고, 어떤 한 사람이 그 경로로부터 충분히 떨어져 있는지 판단하는 함수
     - 지게차의 종류 : (V), (D), (H)
-    - forklift_deque : forklift의 바운딩 박스 좌표 여러 개를 저장하는 deque 객체
+    - forklift_deque_values : forklift의 바운딩 박스 좌표 2개 or None
     - person_bbox : person의 바운딩 박스 좌표를 저장하는 리스트 객체
     """
     
-    # deque에서 두 프레임의 좌표값 추출
-    values = get_first_last_values(forklift_deque)
-    if not values:
+    # forklift_deque_values 에서 두 좌표값 분리 # 😎
+    if not forklift_deque_values:
         return False
     else:
-        value1, value2 = values
+        value1, value2 = forklift_deque_values
     x1, y1, w1, h1, _, cls1 = value1  # (xywh, conf, cls)
     x2, y2, w2, h2, _, cls2 = value2
     
@@ -156,16 +157,16 @@ def detect_danger_between_forklift_and_person(forklift_deque, person_bbox):
     
     # danger_flag
     return danger_cond1 & danger_cond2
-
 ## --------------------------------------------------------------------------------------
 ## 메인 코드
 ## --------------------------------------------------------------------------------------
 
 # 커스텀 모델 불러오기
 model = torch.hub.load('./yolov5', 'custom', path='./model/mnv_Model.pt', source='local') # ⭐
+model.conf = 0.75
 
 # 비디오 파일 로드
-video_file = "./safe2.mp4"
+video_file = "./edited_cctv.mp4"
 cap = cv2.VideoCapture(video_file)
 
 # 비디오 객체가 열렸는지 확인
@@ -173,26 +174,30 @@ if not cap.isOpened():
     print("Video open failed!")
     sys.exit()
 
+# 영상 프레임 간격 설정 (가변적)
+frame_interval = 4
+
 # 최근 n개 프레임을 저장할 데크(deque) 객체 생성
 DEQUE_MAXLEN = 5
 forklift_frames = deque(maxlen=DEQUE_MAXLEN)
 person_frames = deque(maxlen=DEQUE_MAXLEN)
 
-# 프레임 간격 설정 (가변적)
-frame_interval = 4
-
-# forklift, person valid flag
-forklift_valid, forklift_moves, person_valid = False, False, False # 초기값 : False
+# 지게차의 변위, 이동 방향 계산시 사용할 지게차의 좌표값 (2개)
+selected_forklift_frames = None # 😎
+first_value, last_value = None, None # 😎
 
 # 지게차 움직임의 기준치
 MOVE_OR_NOT = 7
 
+# forklift, person valid flag
+forklift_valid, forklift_moves, person_valid = False, False, False # 초기값 : False
+
 # 지게차 w(너비), h(높이) 최대값
-# forklift_maxlen = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]  # (V), (D), (H) 😎 테스트용
+# forklift_maxlen = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]  # (V), (D), (H) 테스트용
 
 # 1프레임씩 읽으며 위험상황 처리
 while True:
-    # time.sleep(0.2) # 😎 테스트용
+    # time.sleep(0.2) # 테스트용
     
     # 마지막에 적용할 cv2 사항들
     cv2_list = []
@@ -224,9 +229,9 @@ while True:
         # [2] 지게차가 있는지 확인 (Trolly:2는 제외)
         if set(detected_labels) & set([1, 3, 4]):
             print('[2-1] 실행')
-            indices = [i for i, x in enumerate(detected_labels) if x in [1, 3, 4]]  # 😎
-            forklift_frame = results.xywh[0][indices[0]].clone()  # 😎 ⭐
-            x_, y_, w_, h_, _, cls_ = forklift_frame  # 😎
+            indices = [i for i, x in enumerate(detected_labels) if x in [1, 3, 4]]
+            forklift_frame = results.xywh[0][indices[0]].clone()  # ⭐
+            x_, y_, w_, h_, _, cls_ = forklift_frame
             
             # 각 지게차 타입별 최대 대각선 길이 갱신
             # forklift_type = {1: 0, 3: 1, 4: 2}
@@ -239,12 +244,14 @@ while True:
             
             ### 중점좌표 보정 코드 (화면 양 끝에 있을 때)
             
-            forklift_frames.append(forklift_frame)  # 😎 ⭐
+            forklift_frames.append(forklift_frame)  # ⭐
             
-            # 지게차가 움직이는 거리 계산, 움직이는지 여부 파악
             print(f'forklift_valid 값 : {forklift_valid}')
             print(f'forklift_frames 길이 : {len(forklift_frames)}')
-            if (len(forklift_frames)==DEQUE_MAXLEN) and (forklift_frames.count(None) / len(forklift_frames) <= 0.5): # 😎😎
+            selected_forklift_frames = get_first_last_values(forklift_frames) # 😎 지게차 좌표값 가져오기 (중요)
+            
+            # 지게차가 움직이는 거리 계산, 움직이는지 여부 파악
+            if (len(forklift_frames)==DEQUE_MAXLEN) and (forklift_frames.count(None) / len(forklift_frames) <= 0.5):
                 print('[2-2] 실행')
                 forklift_valid = True
                 
@@ -255,17 +262,19 @@ while True:
                 forklift_moves = True if dist > MOVE_OR_NOT else False  # 변위가 기준치보다 크면 움직인다고 판단
         else:
             forklift_frames.append(None)
-            if (len(forklift_frames)==DEQUE_MAXLEN) and (forklift_frames.count(None) / len(forklift_frames) > 0.5): # 😎😎
+            selected_forklift_frames = get_first_last_values(forklift_frames) # 😎 지게차 좌표값 가져오기 (불필요한가?)
+            if (len(forklift_frames)==DEQUE_MAXLEN) and (forklift_frames.count(None) / len(forklift_frames) > 0.5):
                 # 트래킹 중인 지게차가 없어졌다면 데크 초기화
                 if forklift_valid:
                     forklift_frames.clear()
                     forklift_valid = False
+                    forklift_moves = False # 😎
         
         # [3] 사람이 있는지 확인 (지게차가 있고 움직일 때)
-        if forklift_valid and forklift_moves and (0 in detected_labels):
+        if forklift_moves and (0 in detected_labels): # 😎
             print('[3-1] 실행')
-            indices = [i for i, x in enumerate(detected_labels) if x == 0] # 😎
-            person_frame = results.xywh[0][indices[0]][:-2].clone() # 😎 ⭐
+            indices = [i for i, x in enumerate(detected_labels) if x == 0]
+            person_frame = results.xywh[0][indices[0]][:-2].clone() # ⭐
             person_frame[1] += (person_frame[3] / 4)    # 사람 바운딩 박스 범위 조정(발 부분으로 한정)
             person_frame[3] = (person_frame[3] / 2)
             person_frames.append(person_frame)
@@ -279,29 +288,32 @@ while True:
             person_valid = False
         
         # [4] 지게차 예상 진행 루트와의 직선 거리를 계산해서 위험여부를 알려줌
-        if person_valid and detect_danger_between_forklift_and_person(forklift_frames, person_frame):  # ⏳
+        # if person_valid and detect_danger_between_forklift_and_person(forklift_frames, person_frame):  # ⏳
+        if forklift_moves and person_valid: # 😎
             print('[4] 실행')
-            cv2_list.append(('collision risk occurred :o', (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)) # 😎
-            cv2_list.append((f'{person_frame}', (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 3)) # 테스트용
-            print('collision risk occurred :o') # 테스트용
-            # [GUI] if not mute : self.danger() # [위험상황 발생 시각 저장 기능]
+            if detect_danger_between_forklift_and_person(selected_forklift_frames, person_frame):
+                cv2_list.append(('collision risk occurred :o', (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3))
+                cv2_list.append((f'{person_frame}', (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 3)) # 테스트용
+                print('collision risk occurred :o') # 테스트용
+                # [GUI] if not mute : self.danger() # [위험상황 발생 알림 기능]
         
         # [5] 지게차 예상 진행 루트(직선) 표시
-        if forklift_valid and forklift_moves:
+        if forklift_moves: # 😎
             print('[5-1] 실행')
-            first_value, last_value = get_first_last_values(forklift_frames) # ⏳
+            # first_value, last_value = get_first_last_values(forklift_frames) # ⏳
+            first_value, last_value = selected_forklift_frames # 😎
             x1, y1, _, _, _, _ = first_value
             x2, y2, _, _, _, _ = last_value
             
             # 대상 사진의 높이, 너비
             height, width, _ = results.ims[0].shape
             
-            if forklift_moves:
-                print('[5-2] 실행')
-                point1, point2 = extend_line(height, width, x1, y1, x2, y2) # 😎
-                cv2_list.append((point1, point2, (0, 255, 0), 3)) # 😎
-                dist = euclidean_dist(x1, y1, x2, y2)   # 빼도 되나?
-                cv2_list.append((f'Dist : {dist:.3f}', (1030, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3)) # 😎
+            # if forklift_moves:
+            print('[5-2] 실행')
+            point1, point2 = extend_line(height, width, x1, y1, x2, y2)
+            cv2_list.append((point1, point2, (0, 255, 0), 3))
+            dist = euclidean_dist(x1, y1, x2, y2)   # 불필요한가?
+            cv2_list.append((f'Dist : {dist:.3f}', (1030, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 3))
         
         # cv2_list.append((f'forklift(V) => {forklift_maxlen[0]}', (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)) # 테스트용
         # cv2_list.append((f'forklift(D) => {forklift_maxlen[1]}', (30, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)) # 테스트용
