@@ -157,6 +157,7 @@ def detect_danger_between_forklift_and_person(forklift_deque_values, person_bbox
     
     # danger_flag
     return danger_cond1 & danger_cond2
+
 ## --------------------------------------------------------------------------------------
 ## 메인 코드
 ## --------------------------------------------------------------------------------------

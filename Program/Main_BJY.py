@@ -99,8 +99,11 @@ class VideoProcessor:
             self.cap.release()
             
     def apply_model(self, frame, model):
-        results = model(frame)
-        return results.render()[0]
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # ⭐
+        results = model(frame) # ⭐
+        annotated_frames = results.render() # ⭐
+        annotated_frame = cv2.cvtColor(annotated_frames[0], cv2.COLOR_BGR2RGB)  # ⭐
+        return annotated_frame
 
             
 class ObjectDetection:
@@ -170,7 +173,7 @@ class ObjectDetection:
 
             # Forklift가 감지될 때마다 박스를 기록
             if label in ['Forklift(H)', 'Forklift(V)', 'Forklift(D)']:
-                forklift_box = (x1, x2, y1, y2) 
+                forklift_box = (x1, x2, y1, y2)
 
             if label == 'Person' : 
                 X_MUL = 1.0
@@ -190,8 +193,8 @@ class ObjectDetection:
 
         # Rack에 사람이 있는 경우 알림 표시
         if label == 'Person':
-            X_MUL = 1.0 # 1.5
-            Y_MUL = 1.0 # 0.5
+            X_MUL = 1.5 # 1.0
+            Y_MUL = 0.5 # 1.0
             x2 = ((x1 + x2) / 2) * X_MUL
             y2 = ((y1 + y2) / 2) * Y_MUL
             x2 , y2 = int(x2), int(y2)
@@ -606,6 +609,7 @@ class CameraProcessor:
             raise ValueError("Error: Could not open camera.")
         self.frame = None
         self.model_flag = False
+        self.fps = self.cap.get(cv2.CAP_PROP_FPS)  # 😎
 
     def apply_model(self, frame, model):
         results = model(frame)
@@ -629,10 +633,10 @@ class FrameSaver:
 
     def save_frame(self, frame):
         self.frames.append(frame.copy())
-        if len(self.frames) > self.range_num*30:
+        if len(self.frames) > self.range_num * 2 * 15:  # 😎
             del self.frames[0]
 
-    def save_to_video(self, output_path, fps=15):
+    def save_to_video(self, output_path, fps=15):   # 😎
         if len(self.frames) == 0:
             raise ValueError("Error: No frames to save.")
         frame_height, frame_width, _ = self.frames[0].shape
@@ -641,7 +645,7 @@ class FrameSaver:
         out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
         for frame in self.frames:
             out.write(frame)
-            if time.time() - start_time >= self.range_num*2 :
+            if time.time() - start_time >= self.range_num * 2 :
                     break
         out.release()
 
@@ -756,6 +760,7 @@ class WindowClass(QMainWindow, form_class):
         self.delay_term=False
         self.points1 = []
         self.points2 = []
+        self.frames_left_to_save = [] # 😎 리스트 저장 [위험발생시간, 동영상 저장까지 남은 프레임 수]
 
         self.skip_num = 5
         self.btn_start_detection.clicked.connect(self.toggle_model)
@@ -860,7 +865,6 @@ class WindowClass(QMainWindow, form_class):
         self.dialog = SelectAreaDialog(test_filepath, self)
         self.dialog.finished.connect(self.on_dialog_finished)
         self.dialog.show()
-        
 
     def on_dialog_finished(self, result):
         if result == QDialog.Rejected:
@@ -876,7 +880,6 @@ class WindowClass(QMainWindow, form_class):
         self.dialog.deleteLater()  # 다이얼로그 객체 삭제
         self.camera_processor.cap = cv2.VideoCapture(test_filepath)
         
-            
     def load_video_file(self):
         self.btn_pause.hide()
         self.Current.hide()
@@ -940,13 +943,16 @@ class WindowClass(QMainWindow, form_class):
         frame = self.camera_processor.get_frame()
         
         if frame is not None:
-            self.model.result = False   # 😎 위험 결과 초기화
+            self.model.result = False   # 위험 결과 초기화
             if self.model_flag :
-                frame, result = self.model.apply_model(frame, self.points1, self.points2) # 😎
+                frame, result = self.model.apply_model(frame, self.points1, self.points2)
                 if result :
                     if not self.delay_term:
-                        time = self.dialog_open()
-                        self.Log_text_2.addItem(time)
+                        t = self.get_timestamp()    # 😎
+                        self.Log_text_2.addItem(t)  # 😎
+                        self.frames_left_to_save.append([t, self.frame_saver.range_num * 15])  # 😎
+                        # time = self.dialog_open() # 😎
+                        # self.Log_text_2.addItem(time) # 😎
                         self.delay_term = True
                         self.danger_run()
                         global danger_delay
@@ -963,6 +969,7 @@ class WindowClass(QMainWindow, form_class):
             self.show_img(self.on_air_camera, self.scene2, frame)
             self.frame_saver.save_frame(frame)
             self.video_widget.setFrame(frame)
+            self.manage_video_save() # 😎
             
     def reset_delay_term(self):
         self.delay_term = False
@@ -1021,52 +1028,35 @@ class WindowClass(QMainWindow, form_class):
         else:
             event.ignore()
 
-    def play_saved_frames(self):
+    # 😎
+    def get_timestamp(self):
         current_time = datetime.datetime.now()
         timestamp = current_time.strftime("%Y%m%d%H%M%S")
-        output_path = f'{timestamp}.mp4'
-        frame_delay = 1 / 30
-
-        try:
-            self.frame_saver.save_to_video(output_path)
-        except ValueError as e:
-            print(e)
-            return
-        # for frame in self.frame_saver.frames:
-        #     #self.show_img(self.play_frame_view, self.scene3, frame)
-        #     self.show_img(self.on_air_camera, self.scene2, frame)
-        #     if danger_detected:
-        #         self.add_red_overlay()
-        #     QCoreApplication.processEvents()
-        #     time.sleep(frame_delay)
         return timestamp
 
-    def dialog_open(self):
-        # self.dialog = QDialog()
-        # self.dialog.setWindowTitle('영상 저장')
-        # self.play_frame_view = QGraphicsView(self.dialog)
-        # self.scene3 = QGraphicsScene()
-        # self.play_frame_view.setScene(self.scene3)
+    # 😎
+    def save_video(self, timestamp):
+        output_path = f"{timestamp}.mp4"
+        try:
+            self.frame_saver.save_to_video(output_path)
+            return True
+        except ValueError as e:
+            print(e)
+            return False
 
-        # dialog_layout = QVBoxLayout()
-        # dialog_layout.addWidget(self.play_frame_view)
-        # self.dialog.setLayout(dialog_layout)
-
-        # self.message_label = QLabel("동영상 저장 중", self.dialog)
-        # self.message_label.setAlignment(Qt.AlignCenter)
-        # self.message_label.setStyleSheet("QLabel {font-size: 24px; font-weight: bold; }")
-        # dialog_layout.addWidget(self.message_label)
-
-        # screen = QDesktopWidget().screenGeometry()
-        # width = screen.width() // 2
-        # height = screen.height() // 2
-        # self.dialog.resize(width, height)
-
-        # self.dialog.show()
-        time = self.play_saved_frames()
-        #self.message_label.setText("동영상 저장 완료")
-        return time
-
+    # 😎
+    def manage_video_save(self):
+        if self.frames_left_to_save:
+            for i in range(len(self.frames_left_to_save)-1, -1, -1):
+                t, frames_left = self.frames_left_to_save[i]
+                if frames_left == 1:
+                    success = self.save_video(t)
+                    del self.frames_left_to_save[i]
+                elif frames_left > 1:
+                    self.frames_left_to_save[i][1] -= 1
+                else:
+                    raise ValueError("invalid frames_left_to_save")
+    
     def muting(self) :
         global mute
         if self.checkBox2.isChecked() :
