@@ -104,7 +104,7 @@ KDT 5기 혜모팀의 기업 프로젝트입니다.
 
 <hr>
 
-### Notion
+
 
 ![alt text](README_IMAGE/image-1.png)
-Notion : [링크](https://water-maple-b1a.notion.site/_-_-43f06266c0f84a9ba1832b29022a6afd?pvs=4)
+
